@@ -48,8 +48,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static uploads directory with cache control
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+import fs from 'fs';
+
+// Health check endpoints (both /api/health and /health supported)
+const healthHandler = (req, res) => {
   res.json({
     status: 'healthy',
     service: 'PatientCare Clinical API',
@@ -57,7 +59,10 @@ app.get('/api/health', (req, res) => {
     security_standard: '/cso (Chief Security Officer)',
     timestamp: new Date().toISOString()
   });
-});
+};
+
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
 
 // Mount modular API routers
 app.use('/api/auth', authRoutes);
@@ -65,12 +70,27 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Production Static Client Serving (Single-service deployment)
+// Production Static Client Serving (If dist exists, serve SPA; otherwise serve API root status)
 const clientDistPath = path.join(__dirname, '../dist');
-app.use(express.static(clientDistPath));
+const indexHtmlPath = path.join(clientDistPath, 'index.html');
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+}
 
 app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+  if (fs.existsSync(indexHtmlPath)) {
+    return res.sendFile(indexHtmlPath);
+  }
+  return res.json({
+    status: 'healthy',
+    service: 'PatientCare Clinical API (Render Service Live)',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth/login',
+      patients: '/api/patients'
+    }
+  });
 });
 
 // 404 handler for unhandled API routes
