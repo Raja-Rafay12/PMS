@@ -934,11 +934,40 @@ input, textarea, select, button {
   box-sizing: border-box;
 }
 
+.modern-select {
+  width: 100%;
+  padding: 10px 38px 10px 14px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 500;
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230284c7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px 14px;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.18s ease-in-out;
+  box-shadow: var(--shadow-xs);
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.modern-select:hover {
+  border-color: var(--brand-cyan);
+}
+
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus,
 .modern-input:focus,
-.modern-textarea:focus {
+.modern-textarea:focus,
+.modern-select:focus {
   border-color: var(--brand-cyan);
   background-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16);

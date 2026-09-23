@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePatients } from '../../context/PatientContext';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -31,8 +31,9 @@ import {
 export const PrintSummaryView = () => {
   const { activePatient, clinicConfig, navigateTo, showToast } = usePatients();
   const { currentUser, doctors = [], doctorLetterheads = {} } = useAuth();
+  const isDoctorUser = currentUser?.role === 'doctor';
 
-  // Selected physician for letterhead branding (defaults to logged-in doctor, or first doctor)
+  // Selected physician for letterhead branding (strictly locked to logged-in doctor, or first doctor for admin)
   const [selectedDoctorId, setSelectedDoctorId] = useState(() => {
     if (currentUser?.role === 'doctor' && currentUser?.id) {
       return currentUser.id;
@@ -42,6 +43,13 @@ export const PrintSummaryView = () => {
     }
     return 'clinic';
   });
+
+  // Ensure logged-in doctor is always locked to their own physician ID
+  useEffect(() => {
+    if (isDoctorUser && currentUser?.id && selectedDoctorId !== currentUser.id) {
+      setSelectedDoctorId(currentUser.id);
+    }
+  }, [isDoctorUser, currentUser?.id, selectedDoctorId]);
 
   // Selected practice hospital location (defaults to 'all')
   const [selectedLocationId, setSelectedLocationId] = useState('all');
@@ -269,29 +277,73 @@ export const PrintSummaryView = () => {
               <Stethoscope size={14} />
               <span>Attending Letterhead</span>
             </div>
-            <select
-              className="modern-select"
-              style={{ width: '100%', fontSize: '0.85rem', padding: '8px 10px', background: 'var(--bg-input)' }}
-              value={selectedDoctorId}
-              onChange={(e) => {
-                setSelectedDoctorId(e.target.value);
-                setSelectedLocationId('all');
-              }}
-            >
-              <option value="clinic">🏥 Clinic Master Default</option>
-              {doctors.map(d => (
-                <option key={d.id} value={d.id}>
-                  👨‍⚕️ {d.name} {d.specialty ? `(${d.specialty})` : ''} {doctorLetterheads[d.id]?.enabled ? '★' : ''}
-                </option>
-              ))}
-            </select>
-            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.3 }}>
-              {selectedDoctorId !== 'clinic' && doctorLetterheads[selectedDoctorId]?.enabled ? (
-                <span style={{ color: 'var(--brand-emerald)', fontWeight: 600 }}>✓ Physician Custom Letterhead</span>
-              ) : (
-                <span>Using default clinic letterhead formatting</span>
-              )}
-            </div>
+            {isDoctorUser ? (
+              /* Doctor users strictly see only their own letterhead identity */
+              <div style={{
+                background: 'var(--bg-card)',
+                border: '1.5px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <div style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    background: 'var(--brand-cyan-light)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.1rem',
+                    flexShrink: 0
+                  }}>
+                    👨‍⚕️
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {currentUser?.name || effectiveLetterhead.doctorName}
+                    </div>
+                    <div style={{ fontSize: '0.725rem', color: 'var(--brand-cyan)', fontWeight: 600 }}>
+                      {currentUser?.specialty ? `Consultant in ${currentUser.specialty}` : (effectiveLetterhead.specialtyTitle || 'Attending Physician')}
+                    </div>
+                  </div>
+                </div>
+
+                <span className="badge badge-success" style={{ fontSize: '0.675rem', padding: '3px 8px', flexShrink: 0 }}>
+                  ✓ Your Letterhead
+                </span>
+              </div>
+            ) : (
+              /* Only Admin or Staff can choose which attending letterhead to apply */
+              <>
+                <select
+                  className="modern-select"
+                  value={selectedDoctorId}
+                  onChange={(e) => {
+                    setSelectedDoctorId(e.target.value);
+                    setSelectedLocationId('all');
+                  }}
+                >
+                  <option value="clinic">🏥 Clinic Master Default</option>
+                  {doctors.map(d => (
+                    <option key={d.id} value={d.id}>
+                      👨‍⚕️ {d.name} {d.specialty ? `(${d.specialty})` : ''} {doctorLetterheads[d.id]?.enabled ? '★' : ''}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.3 }}>
+                  {selectedDoctorId !== 'clinic' && doctorLetterheads[selectedDoctorId]?.enabled ? (
+                    <span style={{ color: 'var(--brand-emerald)', fontWeight: 600 }}>✓ Physician Custom Letterhead</span>
+                  ) : (
+                    <span>Using default clinic letterhead formatting</span>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Practice Hospital Today Dropdown */}
             {effectiveLetterhead.locations && effectiveLetterhead.locations.length > 1 && (
@@ -302,7 +354,6 @@ export const PrintSummaryView = () => {
                 </div>
                 <select
                   className="modern-select"
-                  style={{ width: '100%', fontSize: '0.8rem', padding: '7px 9px', background: 'var(--bg-input)' }}
                   value={selectedLocationId}
                   onChange={(e) => setSelectedLocationId(e.target.value)}
                 >
