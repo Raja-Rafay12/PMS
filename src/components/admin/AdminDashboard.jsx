@@ -838,9 +838,9 @@ export const AdminDashboard = () => {
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter for new line</span>
                   </div>
                   <textarea
-                    className="modern-textarea"
+                    className="modern-input modern-textarea"
                     rows={2}
-                    style={{ width: '100%', resize: 'vertical', lineHeight: 1.4 }}
+                    style={{ width: '100%', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit' }}
                     value={clinicForm.qualifications}
                     onChange={(e) => setClinicForm({ ...clinicForm, qualifications: e.target.value })}
                     placeholder={"e.g.\nMBBS\nFCPS (Internal Medicine)"}
@@ -1036,9 +1036,9 @@ export const AdminDashboard = () => {
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter to write beneath on new line</span>
                     </div>
                     <textarea
-                      className="modern-textarea"
+                      className="modern-input modern-textarea"
                       rows={3}
-                      style={{ width: '100%', resize: 'vertical', lineHeight: 1.45 }}
+                      style={{ width: '100%', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', minHeight: 76 }}
                       value={docLhForm.qualifications}
                       onChange={(e) => setDocLhForm({ ...docLhForm, qualifications: e.target.value })}
                       placeholder={"e.g.\nMBBS (Gold Medalist)\nFCPS Cardiology\nFellow Interventional Cardiology"}
@@ -1613,9 +1613,9 @@ export const AdminDashboard = () => {
                 <div className="form-group">
                   <label className="field-label">Qualifications</label>
                   <textarea
-                    className="modern-textarea"
+                    className="modern-input modern-textarea"
                     rows={2}
-                    style={{ resize: 'vertical', lineHeight: 1.4 }}
+                    style={{ resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit' }}
                     placeholder={"MBBS\nFCPS"}
                     value={docFormData.qualifications}
                     onChange={(e) => setDocFormData({ ...docFormData, qualifications: e.target.value })}
