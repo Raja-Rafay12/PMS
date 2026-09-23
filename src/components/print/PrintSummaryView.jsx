@@ -43,9 +43,20 @@ export const PrintSummaryView = () => {
     return 'clinic';
   });
 
+  // Selected practice hospital location (defaults to 'all')
+  const [selectedLocationId, setSelectedLocationId] = useState('all');
+
   // Calculate effective letterhead based on selected physician or clinic defaults
   const effectiveLetterhead = useMemo(() => {
     if (selectedDoctorId === 'clinic') {
+      const defaultLoc = {
+        id: 'loc-default',
+        hospitalName: clinicConfig.clinicName || 'PatientCare Medical Center',
+        department: clinicConfig.address || '',
+        address: '',
+        consultationHours: '',
+        phone: clinicConfig.phone || ''
+      };
       return {
         doctorName: clinicConfig.doctorName || 'Consultant Physician',
         qualifications: clinicConfig.qualifications || 'MBBS, FCPS',
@@ -57,7 +68,8 @@ export const PrintSummaryView = () => {
         phone: clinicConfig.phone || '',
         email: clinicConfig.email || '',
         consultationHours: '',
-        footerNote: ''
+        footerNote: '',
+        locations: [defaultLoc]
       };
     }
 
@@ -65,22 +77,44 @@ export const PrintSummaryView = () => {
     const customLh = doctorLetterheads[selectedDoctorId];
 
     if (customLh && customLh.enabled) {
+      const locations = (Array.isArray(customLh.locations) && customLh.locations.length > 0)
+        ? customLh.locations
+        : [
+            {
+              id: 'loc-1',
+              hospitalName: customLh.clinicName || clinicConfig.clinicName || 'PatientCare Medical Center',
+              department: customLh.address || clinicConfig.address || '',
+              address: '',
+              consultationHours: customLh.consultationHours || '',
+              phone: customLh.phone || doc?.phone || clinicConfig.phone || ''
+            }
+          ];
+
       return {
         doctorName: customLh.doctorName || doc?.name || clinicConfig.doctorName || 'Consultant Physician',
         qualifications: customLh.qualifications || doc?.qualifications || clinicConfig.qualifications || 'MBBS, FCPS',
         regNumber: customLh.pmcNumber || doc?.pmcNumber || clinicConfig.regNumber || '',
         specialtyTitle: customLh.specialtyTitle || (doc?.specialty ? `Consultant in ${doc.specialty}` : ''),
-        clinicName: customLh.clinicName || clinicConfig.clinicName || 'PatientCare Medical Center',
+        clinicName: locations[0]?.hospitalName || customLh.clinicName || clinicConfig.clinicName || 'PatientCare Medical Center',
         tagline: customLh.tagline !== undefined ? customLh.tagline : (clinicConfig.tagline || ''),
-        address: customLh.address || clinicConfig.address || '',
-        phone: customLh.phone || doc?.phone || clinicConfig.phone || '',
+        address: locations[0]?.department || customLh.address || clinicConfig.address || '',
+        phone: locations[0]?.phone || customLh.phone || doc?.phone || clinicConfig.phone || '',
         email: customLh.email || doc?.email || clinicConfig.email || '',
-        consultationHours: customLh.consultationHours || '',
-        footerNote: customLh.footerNote || ''
+        consultationHours: locations[0]?.consultationHours || customLh.consultationHours || '',
+        footerNote: customLh.footerNote || '',
+        locations
       };
     }
 
     if (doc) {
+      const defaultLoc = {
+        id: 'loc-doc',
+        hospitalName: clinicConfig.clinicName || 'PatientCare Medical Center',
+        department: clinicConfig.address || '',
+        address: '',
+        consultationHours: '',
+        phone: doc.phone || clinicConfig.phone || ''
+      };
       return {
         doctorName: doc.name || clinicConfig.doctorName || 'Consultant Physician',
         qualifications: doc.qualifications || clinicConfig.qualifications || 'MBBS, FCPS',
@@ -92,10 +126,19 @@ export const PrintSummaryView = () => {
         phone: doc.phone || clinicConfig.phone || '',
         email: doc.email || clinicConfig.email || '',
         consultationHours: '',
-        footerNote: ''
+        footerNote: '',
+        locations: [defaultLoc]
       };
     }
 
+    const defaultLoc = {
+      id: 'loc-default',
+      hospitalName: clinicConfig.clinicName || 'PatientCare Medical Center',
+      department: clinicConfig.address || '',
+      address: '',
+      consultationHours: '',
+      phone: clinicConfig.phone || ''
+    };
     return {
       doctorName: clinicConfig.doctorName || 'Consultant Physician',
       qualifications: clinicConfig.qualifications || 'MBBS, FCPS',
@@ -107,9 +150,45 @@ export const PrintSummaryView = () => {
       phone: clinicConfig.phone || '',
       email: clinicConfig.email || '',
       consultationHours: '',
-      footerNote: ''
+      footerNote: '',
+      locations: [defaultLoc]
     };
   }, [selectedDoctorId, doctors, doctorLetterheads, clinicConfig]);
+
+  // Selected specific location if chosen
+  const activeLocation = useMemo(() => {
+    if (selectedLocationId === 'all') return null;
+    return effectiveLetterhead.locations?.find(l => l.id === selectedLocationId) || null;
+  }, [selectedLocationId, effectiveLetterhead]);
+
+  // Checkbox selections for customized print output
+  const [selectedNotes, setSelectedNotes] = useState(() => {
+    const map = {};
+    if (activePatient?.notes?.length > 0) {
+      map[activePatient.notes[0].id] = true;
+    }
+    return map;
+  });
+
+  const [selectedExams, setSelectedExams] = useState(() => {
+    const map = {};
+    if (activePatient?.examinations?.length > 0) {
+      map[activePatient.examinations[0].id] = true;
+    }
+    return map;
+  });
+
+  const [selectedLabs, setSelectedLabs] = useState(() => {
+    const map = {};
+    if (activePatient?.labReports?.length > 0) {
+      map[activePatient.labReports[0].id] = true;
+    }
+    return map;
+  });
+
+  const [includeMedications, setIncludeMedications] = useState(true);
+  const [includeUrduTranslation, setIncludeUrduTranslation] = useState(true);
+  const [includeImpression, setIncludeImpression] = useState(true);
 
   if (!activePatient) {
     return (
@@ -125,35 +204,6 @@ export const PrintSummaryView = () => {
       </div>
     );
   }
-
-  // Checkbox selections for customized print output
-  const [selectedNotes, setSelectedNotes] = useState(() => {
-    const map = {};
-    if (activePatient.notes?.length > 0) {
-      map[activePatient.notes[0].id] = true;
-    }
-    return map;
-  });
-
-  const [selectedExams, setSelectedExams] = useState(() => {
-    const map = {};
-    if (activePatient.examinations?.length > 0) {
-      map[activePatient.examinations[0].id] = true;
-    }
-    return map;
-  });
-
-  const [selectedLabs, setSelectedLabs] = useState(() => {
-    const map = {};
-    if (activePatient.labReports?.length > 0) {
-      map[activePatient.labReports[0].id] = true;
-    }
-    return map;
-  });
-
-  const [includeMedications, setIncludeMedications] = useState(true);
-  const [includeUrduTranslation, setIncludeUrduTranslation] = useState(true);
-  const [includeImpression, setIncludeImpression] = useState(true);
 
   const toggleNote = (id) => setSelectedNotes(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleExam = (id) => setSelectedExams(prev => ({ ...prev, [id]: !prev[id] }));
@@ -223,7 +273,10 @@ export const PrintSummaryView = () => {
               className="modern-select"
               style={{ width: '100%', fontSize: '0.85rem', padding: '8px 10px', background: 'var(--bg-input)' }}
               value={selectedDoctorId}
-              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              onChange={(e) => {
+                setSelectedDoctorId(e.target.value);
+                setSelectedLocationId('all');
+              }}
             >
               <option value="clinic">🏥 Clinic Master Default</option>
               {doctors.map(d => (
@@ -239,6 +292,29 @@ export const PrintSummaryView = () => {
                 <span>Using default clinic letterhead formatting</span>
               )}
             </div>
+
+            {/* Practice Hospital Today Dropdown */}
+            {effectiveLetterhead.locations && effectiveLetterhead.locations.length > 1 && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Building2 size={13} color="var(--brand-cyan)" />
+                  <span>Practice Hospital Today:</span>
+                </div>
+                <select
+                  className="modern-select"
+                  style={{ width: '100%', fontSize: '0.8rem', padding: '7px 9px', background: 'var(--bg-input)' }}
+                  value={selectedLocationId}
+                  onChange={(e) => setSelectedLocationId(e.target.value)}
+                >
+                  <option value="all">🏢 All Hospitals (Chamber Schedule)</option>
+                  {effectiveLetterhead.locations.map((loc, idx) => (
+                    <option key={loc.id || idx} value={loc.id}>
+                      🏥 {loc.hospitalName} {loc.consultationHours ? `(${loc.consultationHours})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 16 }}>
@@ -426,32 +502,76 @@ export const PrintSummaryView = () => {
                 )}
               </div>
 
-              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  {effectiveLetterhead.clinicName || 'PatientCare Medical Center'}
+              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', maxWidth: 350 }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  {activeLocation ? activeLocation.hospitalName : (effectiveLetterhead.locations[0]?.hospitalName || effectiveLetterhead.clinicName || 'PatientCare Medical Center')}
                 </h3>
                 {effectiveLetterhead.tagline && (
-                  <div style={{ fontSize: '0.775rem', color: '#64748b', maxWidth: 280, marginTop: 2 }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
                     {effectiveLetterhead.tagline}
                   </div>
                 )}
-                <div style={{ fontSize: '0.8rem', color: '#475569', maxWidth: 280, marginTop: 2 }}>
-                  {effectiveLetterhead.address || 'Clinic Diagnostic Center'}
+                <div style={{ fontSize: '0.775rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
+                  {activeLocation ? (activeLocation.department || activeLocation.address) : (effectiveLetterhead.locations[0]?.department || effectiveLetterhead.address || 'Clinic Diagnostic Center')}
                 </div>
-                {effectiveLetterhead.phone && (
-                  <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                    Ph: {effectiveLetterhead.phone}
+                {activeLocation?.address && activeLocation?.department && (
+                  <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                    {activeLocation.address}
+                  </div>
+                )}
+                {(activeLocation?.phone || effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone) && (
+                  <div style={{ fontSize: '0.775rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                    Ph: {activeLocation ? activeLocation.phone : (effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone)}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* OPD Consultation Hours Strip */}
-            {effectiveLetterhead.consultationHours && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '5px 12px', fontSize: '0.75rem', color: '#475569', marginBottom: 16 }}>
-                <span>🕒 <strong>Consultation Hours:</strong> {effectiveLetterhead.consultationHours}</span>
-                <span>Official Patient Prescription &amp; Clinical Record</span>
-              </div>
+            {/* Practice Schedule or Multi-Hospital Chambers Strip */}
+            {activeLocation ? (
+              activeLocation.consultationHours && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '6px 12px', fontSize: '0.75rem', color: '#475569', marginBottom: 16 }}>
+                  <span>🏥 <strong>{activeLocation.hospitalName}:</strong> {activeLocation.consultationHours} {activeLocation.department ? `· ${activeLocation.department}` : ''}</span>
+                  <span>Official Patient Prescription &amp; Clinical Record</span>
+                </div>
+              )
+            ) : (
+              (effectiveLetterhead.locations || []).length > 1 ? (
+                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 6, padding: '9px 12px', marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.675rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.04em', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Clinical Practice Chambers &amp; Schedule</span>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>Active Multi-Hospital Practice</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: effectiveLetterhead.locations.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+                    {effectiveLetterhead.locations.map((loc, idx) => (
+                      <div key={loc.id || idx} style={{ borderLeft: '2px solid #0284c7', paddingLeft: 8, fontSize: '0.735rem' }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a' }}>
+                          🏥 {loc.hospitalName}
+                        </div>
+                        {loc.department && <div style={{ color: '#334155', fontWeight: 600 }}>{loc.department}</div>}
+                        {loc.address && <div style={{ color: '#64748b', fontSize: '0.7rem' }}>{loc.address}</div>}
+                        {loc.consultationHours && (
+                          <div style={{ color: '#0284c7', fontWeight: 700, marginTop: 1 }}>
+                            🕒 {loc.consultationHours}
+                          </div>
+                        )}
+                        {loc.phone && (
+                          <div style={{ color: '#475569', fontFamily: 'var(--font-mono)', fontSize: '0.685rem' }}>
+                            📞 {loc.phone}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                effectiveLetterhead.consultationHours && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '5px 12px', fontSize: '0.75rem', color: '#475569', marginBottom: 16 }}>
+                    <span>🕒 <strong>Consultation Hours:</strong> {effectiveLetterhead.consultationHours}</span>
+                    <span>Official Patient Prescription &amp; Clinical Record</span>
+                  </div>
+                )
+              )
             )}
 
             {/* Patient Demographics Bar */}

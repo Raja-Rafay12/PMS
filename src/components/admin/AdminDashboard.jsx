@@ -100,20 +100,31 @@ export const AdminDashboard = () => {
   // Scope switcher for Letterhead Settings: 'clinic' or doctor ID
   const [selectedLetterheadScope, setSelectedLetterheadScope] = useState('clinic');
 
-  // Doctor-specific letterhead form state
+  // Doctor-specific letterhead form state (supports multiple practice hospitals/chambers)
   const [docLhForm, setDocLhForm] = useState({
     enabled: true,
     doctorName: '',
     qualifications: '',
     pmcNumber: '',
     specialtyTitle: '',
-    clinicName: '',
     tagline: '',
+    email: '',
+    footerNote: '',
+    locations: [
+      {
+        id: 'loc-1',
+        hospitalName: '',
+        department: '',
+        address: '',
+        consultationHours: '',
+        phone: ''
+      }
+    ],
+    // Legacy fallback fields
+    clinicName: '',
     address: '',
     phone: '',
-    email: '',
-    consultationHours: '',
-    footerNote: ''
+    consultationHours: ''
   });
 
   // Sync doctor letterhead form when selected scope or doctors change
@@ -122,19 +133,37 @@ export const AdminDashboard = () => {
       const doc = doctors.find(d => d.id === selectedLetterheadScope);
       if (doc) {
         const savedLh = doctorLetterheads[doc.id] || {};
+
+        let initialLocations = [];
+        if (Array.isArray(savedLh.locations) && savedLh.locations.length > 0) {
+          initialLocations = savedLh.locations;
+        } else {
+          initialLocations = [
+            {
+              id: 'loc-1',
+              hospitalName: savedLh.clinicName || 'Ikram Hospital',
+              department: savedLh.address || 'Cardiology Department, Executive Wing Room 104',
+              address: 'Bhimber Road, Gujrat',
+              consultationHours: savedLh.consultationHours || 'Mon – Sat: 4:00 PM – 9:00 PM',
+              phone: savedLh.phone || doc.phone || '+92 336 1422773'
+            }
+          ];
+        }
+
         setDocLhForm({
           enabled: savedLh.enabled !== undefined ? savedLh.enabled : true,
           doctorName: savedLh.doctorName || doc.name || '',
           qualifications: savedLh.qualifications || doc.qualifications || 'MBBS, FCPS',
           pmcNumber: savedLh.pmcNumber || doc.pmcNumber || 'PMC-',
           specialtyTitle: savedLh.specialtyTitle || (doc.specialty ? `Consultant in ${doc.specialty}` : 'Consultant Physician'),
-          clinicName: savedLh.clinicName || clinicConfig.clinicName || 'PatientCare Medical Center',
           tagline: savedLh.tagline !== undefined ? savedLh.tagline : (clinicConfig.tagline || 'Specialist Outpatient Clinical Care'),
-          address: savedLh.address || clinicConfig.address || 'Clinic Diagnostic Center',
-          phone: savedLh.phone || doc.phone || clinicConfig.phone || '',
           email: savedLh.email || doc.email || clinicConfig.email || '',
-          consultationHours: savedLh.consultationHours || 'Mon – Sat: 4:00 PM – 9:00 PM',
-          footerNote: savedLh.footerNote || 'Bring previous prescription and diagnostic reports on follow-up.'
+          footerNote: savedLh.footerNote || 'Bring previous prescription and diagnostic reports on follow-up.',
+          locations: initialLocations,
+          clinicName: initialLocations[0]?.hospitalName || savedLh.clinicName || '',
+          address: initialLocations[0]?.department || savedLh.address || '',
+          phone: initialLocations[0]?.phone || savedLh.phone || '',
+          consultationHours: initialLocations[0]?.consultationHours || savedLh.consultationHours || ''
         });
       }
     }
@@ -275,6 +304,51 @@ export const AdminDashboard = () => {
     showToast('Clinic Master Settings updated successfully!');
   };
 
+  // Location management for multi-hospital practices
+  const handleAddLocation = () => {
+    setDocLhForm(prev => ({
+      ...prev,
+      locations: [
+        ...(prev.locations || []),
+        {
+          id: 'loc-' + Date.now(),
+          hospitalName: '',
+          department: '',
+          address: '',
+          consultationHours: '',
+          phone: ''
+        }
+      ]
+    }));
+  };
+
+  const handleUpdateLocation = (index, field, value) => {
+    setDocLhForm(prev => {
+      const locs = [...(prev.locations || [])];
+      locs[index] = { ...locs[index], [field]: value };
+      return {
+        ...prev,
+        locations: locs,
+        ...(index === 0 ? {
+          clinicName: field === 'hospitalName' ? value : prev.clinicName,
+          address: field === 'department' ? value : prev.address,
+          phone: field === 'phone' ? value : prev.phone,
+          consultationHours: field === 'consultationHours' ? value : prev.consultationHours
+        } : {})
+      };
+    });
+  };
+
+  const handleRemoveLocation = (index) => {
+    setDocLhForm(prev => {
+      const locs = (prev.locations || []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        locations: locs.length > 0 ? locs : [{ id: 'loc-1', hospitalName: '', department: '', address: '', consultationHours: '', phone: '' }]
+      };
+    });
+  };
+
   // Save Individual Doctor Letterhead
   const handleSaveDoctorLetterhead = (e) => {
     e.preventDefault();
@@ -285,7 +359,16 @@ export const AdminDashboard = () => {
     const doc = doctors.find(d => d.id === selectedLetterheadScope);
     if (!doc) return;
 
-    updateDoctorLetterhead(doc.id, docLhForm);
+    const primaryLoc = docLhForm.locations?.[0] || {};
+    const payload = {
+      ...docLhForm,
+      clinicName: primaryLoc.hospitalName || docLhForm.clinicName || 'Clinic Center',
+      address: primaryLoc.department ? `${primaryLoc.department}${primaryLoc.address ? ', ' + primaryLoc.address : ''}` : (docLhForm.address || ''),
+      phone: primaryLoc.phone || docLhForm.phone || '',
+      consultationHours: primaryLoc.consultationHours || docLhForm.consultationHours || ''
+    };
+
+    updateDoctorLetterhead(doc.id, payload);
 
     // Sync core profile credentials
     updateDoctor(doc.id, {
@@ -293,7 +376,7 @@ export const AdminDashboard = () => {
       qualifications: docLhForm.qualifications,
       pmcNumber: docLhForm.pmcNumber,
       specialty: docLhForm.specialtyTitle,
-      phone: docLhForm.phone
+      phone: primaryLoc.phone || docLhForm.phone
     });
 
     showToast(`Clinical letterhead saved for ${docLhForm.doctorName}`);
@@ -315,7 +398,17 @@ export const AdminDashboard = () => {
       phone: doc.phone || clinicConfig.phone || '',
       email: doc.email || clinicConfig.email || '',
       consultationHours: '',
-      footerNote: ''
+      footerNote: '',
+      locations: [
+        {
+          id: 'loc-1',
+          hospitalName: clinicConfig.clinicName || '',
+          department: '',
+          address: clinicConfig.address || '',
+          consultationHours: '',
+          phone: doc.phone || clinicConfig.phone || ''
+        }
+      ]
     };
     setDocLhForm(defaultData);
     updateDoctorLetterhead(doc.id, defaultData);
@@ -872,20 +965,20 @@ export const AdminDashboard = () => {
             </div>
           ) : (
             /* MODE B: INDIVIDUAL DOCTOR LETTERHEAD CONFIGURATION */
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(520px, 1.35fr) minmax(380px, 1fr)', gap: 24, alignItems: 'start' }}>
               {/* Doctor Letterhead Form */}
               <form onSubmit={handleSaveDoctorLetterhead} className="card" style={{ padding: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 14, marginBottom: 18 }}>
                   <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--brand-cyan)' }}>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--brand-cyan)' }}>
                       {docLhForm.doctorName || 'Doctor Letterhead'}
                     </h3>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                      Custom Clinical Stationery &amp; Prescriptions
+                    <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                      Multi-Hospital Clinical Stationery &amp; Prescriptions
                     </div>
                   </div>
 
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
                     <input
                       type="checkbox"
                       checked={docLhForm.enabled}
@@ -896,129 +989,240 @@ export const AdminDashboard = () => {
                 </div>
 
                 {!docLhForm.enabled && (
-                  <div className="badge badge-warning" style={{ display: 'block', padding: '10px 14px', marginBottom: 16, fontSize: '0.8rem', lineHeight: 1.4 }}>
+                  <div className="badge badge-warning" style={{ display: 'block', padding: '10px 14px', marginBottom: 18, fontSize: '0.8rem', lineHeight: 1.4 }}>
                     ⚠️ Custom letterhead is disabled for this doctor. Printed prescriptions and summaries will use the Clinic Master settings until enabled.
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="field-label">Physician Display Name *</label>
+                {/* Section 1: Physician Identity */}
+                <div style={{ background: 'var(--bg-card)', padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border-subtle)', marginBottom: 20 }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)', letterSpacing: '0.05em', marginBottom: 14 }}>
+                    1. Physician Identity &amp; Licensing Credentials
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="field-label">Physician Full Display Name *</label>
                     <input
                       type="text"
                       className="modern-input"
+                      style={{ width: '100%', fontSize: '0.925rem' }}
                       value={docLhForm.doctorName}
                       onChange={(e) => setDocLhForm({ ...docLhForm, doctorName: e.target.value })}
                       placeholder="e.g. Dr. Zain Safdar"
                       required
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="field-label">PMC / PMDC Registration No. *</label>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="field-label">PMC / PMDC Registration Number *</label>
                     <input
                       type="text"
                       className="modern-input"
+                      style={{ width: '100%' }}
                       value={docLhForm.pmcNumber}
                       onChange={(e) => setDocLhForm({ ...docLhForm, pmcNumber: e.target.value })}
                       placeholder="e.g. PMC-48201-P"
                       required
                     />
                   </div>
-                </div>
 
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="field-label">Doctor Qualifications &amp; Fellowships *</label>
-                  <input
-                    type="text"
-                    className="modern-input"
-                    value={docLhForm.qualifications}
-                    onChange={(e) => setDocLhForm({ ...docLhForm, qualifications: e.target.value })}
-                    placeholder="e.g. MBBS (Gold Medalist), FCPS Cardiology, MRCP"
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="field-label">Clinical Specialty / Designation Title</label>
-                  <input
-                    type="text"
-                    className="modern-input"
-                    value={docLhForm.specialtyTitle}
-                    onChange={(e) => setDocLhForm({ ...docLhForm, specialtyTitle: e.target.value })}
-                    placeholder="e.g. Consultant Cardiologist &amp; Heart Specialist"
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="field-label">Hospital / Department Name</label>
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="field-label">Qualifications, Degrees &amp; Fellowships *</label>
                     <input
                       type="text"
                       className="modern-input"
-                      value={docLhForm.clinicName}
-                      onChange={(e) => setDocLhForm({ ...docLhForm, clinicName: e.target.value })}
-                      placeholder="e.g. Department of Cardiology"
+                      style={{ width: '100%' }}
+                      value={docLhForm.qualifications}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, qualifications: e.target.value })}
+                      placeholder="e.g. MBBS (Gold Medalist), FCPS Cardiology, MRCP (UK)"
+                      required
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="field-label">Chamber / OPD Room</label>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="field-label">Clinical Specialty / Designation Title</label>
                     <input
                       type="text"
                       className="modern-input"
-                      value={docLhForm.address}
-                      onChange={(e) => setDocLhForm({ ...docLhForm, address: e.target.value })}
-                      placeholder="e.g. Chamber 12, 1st Floor, Executive Wing"
+                      style={{ width: '100%' }}
+                      value={docLhForm.specialtyTitle}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, specialtyTitle: e.target.value })}
+                      placeholder="e.g. Consultant Cardiologist &amp; Heart Specialist"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="field-label">Letterhead Tagline / Clinical Sub-Specialty Focus</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      style={{ width: '100%' }}
+                      value={docLhForm.tagline}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, tagline: e.target.value })}
+                      placeholder="e.g. Specialist in Hypertension, Coronary Angiography, Echo &amp; Heart Failure"
                     />
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="field-label">Letterhead Tagline / Clinical Focus</label>
-                  <input
-                    type="text"
-                    className="modern-input"
-                    value={docLhForm.tagline}
-                    onChange={(e) => setDocLhForm({ ...docLhForm, tagline: e.target.value })}
-                    placeholder="e.g. Specialist in Hypertension, Coronary Angiography &amp; Heart Failure"
-                  />
+                {/* Section 2: Multiple Practice Hospitals & Clinical Chambers */}
+                <div style={{ background: 'var(--bg-card)', padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border-subtle)', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)', letterSpacing: '0.05em' }}>
+                        2. Practice Hospitals &amp; Clinical Chambers
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Add all hospitals or clinics where this physician consults (e.g. Mon/Wed at Hospital A, Tue/Thu at Hospital B).
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleAddLocation}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.775rem' }}
+                    >
+                      <Plus size={14} />
+                      <span>Add Hospital</span>
+                    </button>
+                  </div>
+
+                  {/* Locations List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {(docLhForm.locations || []).map((loc, idx) => (
+                      <div
+                        key={loc.id || idx}
+                        style={{
+                          background: 'var(--bg-page)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 8,
+                          padding: 16,
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px dashed var(--border-subtle)', paddingBottom: 8 }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--brand-cyan)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Building2 size={14} />
+                            <span>Hospital / Practice Location #{idx + 1} {idx === 0 ? '(Primary / Main)' : ''}</span>
+                          </span>
+
+                          {(docLhForm.locations || []).length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLocation(idx)}
+                              className="btn-icon btn-icon-rose"
+                              style={{ width: 26, height: 26 }}
+                              title="Remove this location"
+                            >
+                              <Trash2 size={13} color="#e11d48" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Full Width Hospital Name */}
+                        <div className="form-group" style={{ marginBottom: 12 }}>
+                          <label className="field-label">Hospital / Medical Center Name *</label>
+                          <input
+                            type="text"
+                            className="modern-input"
+                            style={{ width: '100%', fontSize: '0.9rem' }}
+                            value={loc.hospitalName}
+                            onChange={(e) => handleUpdateLocation(idx, 'hospitalName', e.target.value)}
+                            placeholder="e.g. Ikram Hospital, Gujrat"
+                            required
+                          />
+                        </div>
+
+                        {/* Full Width Department & Chamber */}
+                        <div className="form-group" style={{ marginBottom: 12 }}>
+                          <label className="field-label">Department &amp; Chamber / Room No.</label>
+                          <input
+                            type="text"
+                            className="modern-input"
+                            style={{ width: '100%' }}
+                            value={loc.department}
+                            onChange={(e) => handleUpdateLocation(idx, 'department', e.target.value)}
+                            placeholder="e.g. Cardiology Department, Executive Wing Room 104"
+                          />
+                        </div>
+
+                        {/* Full Width Address */}
+                        <div className="form-group" style={{ marginBottom: 12 }}>
+                          <label className="field-label">Physical Address / Road / City</label>
+                          <input
+                            type="text"
+                            className="modern-input"
+                            style={{ width: '100%' }}
+                            value={loc.address}
+                            onChange={(e) => handleUpdateLocation(idx, 'address', e.target.value)}
+                            placeholder="e.g. Bhimber Road, Gujrat"
+                          />
+                        </div>
+
+                        {/* Schedule & Phone */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                          <div className="form-group">
+                            <label className="field-label">Consultation Days &amp; OPD Timings</label>
+                            <input
+                              type="text"
+                              className="modern-input"
+                              style={{ width: '100%' }}
+                              value={loc.consultationHours}
+                              onChange={(e) => handleUpdateLocation(idx, 'consultationHours', e.target.value)}
+                              placeholder="e.g. Mon, Wed, Fri: 4:00 PM – 9:00 PM"
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label className="field-label">Appointment / Helpline Phone</label>
+                            <input
+                              type="text"
+                              className="modern-input"
+                              style={{ width: '100%' }}
+                              value={loc.phone}
+                              onChange={(e) => handleUpdateLocation(idx, 'phone', e.target.value)}
+                              placeholder="+92 336 1422773"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="field-label">Direct Appointment Phone</label>
+                {/* Section 3: Prescription Footer & Contact */}
+                <div style={{ background: 'var(--bg-card)', padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border-subtle)', marginBottom: 20 }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)', letterSpacing: '0.05em', marginBottom: 14 }}>
+                    3. Prescription Footer Instructions &amp; Email
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="field-label">Custom Prescription Footer Advice / Emergency Note</label>
                     <input
                       type="text"
                       className="modern-input"
-                      value={docLhForm.phone}
-                      onChange={(e) => setDocLhForm({ ...docLhForm, phone: e.target.value })}
-                      placeholder="+92 336 1422773"
+                      style={{ width: '100%' }}
+                      value={docLhForm.footerNote}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, footerNote: e.target.value })}
+                      placeholder="e.g. In case of acute cardiac emergency, report to Emergency CCU immediately."
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="field-label">Consultation / OPD Hours</label>
-                    <input
-                      type="text"
-                      className="modern-input"
-                      value={docLhForm.consultationHours}
-                      onChange={(e) => setDocLhForm({ ...docLhForm, consultationHours: e.target.value })}
-                      placeholder="e.g. Mon – Sat: 4:00 PM – 9:00 PM"
-                    />
-                  </div>
-                </div>
 
-                <div className="form-group" style={{ marginBottom: 20 }}>
-                  <label className="field-label">Custom Prescription Footer Advice / Note</label>
-                  <input
-                    type="text"
-                    className="modern-input"
-                    value={docLhForm.footerNote}
-                    onChange={(e) => setDocLhForm({ ...docLhForm, footerNote: e.target.value })}
-                    placeholder="e.g. In case of acute chest pain, report to Emergency CCU immediately."
-                  />
+                  <div className="form-group">
+                    <label className="field-label">Official / Practice Email</label>
+                    <input
+                      type="email"
+                      className="modern-input"
+                      style={{ width: '100%' }}
+                      value={docLhForm.email}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, email: e.target.value })}
+                      placeholder="e.g. dr.zain@example.com"
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '12px 18px', fontSize: '0.95rem' }}>
                     <Check size={16} />
                     <span>Save Doctor Letterhead</span>
                   </button>
@@ -1027,6 +1231,7 @@ export const AdminDashboard = () => {
                     className="btn btn-secondary"
                     onClick={handleResetDoctorLetterhead}
                     title="Reset to Master Clinic Defaults"
+                    style={{ padding: '12px 16px' }}
                   >
                     <RotateCcw size={15} />
                     <span>Reset</span>
@@ -1035,7 +1240,7 @@ export const AdminDashboard = () => {
               </form>
 
               {/* Doctor Live A4 Preview */}
-              <div>
+              <div style={{ position: 'sticky', top: 20 }}>
                 <div className="card" style={{ padding: 24, background: '#f8fafc', border: '2px dashed var(--border-subtle)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
@@ -1066,30 +1271,64 @@ export const AdminDashboard = () => {
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                          {docLhForm.clinicName || 'PatientCare Medical Center'}
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', maxWidth: 260 }}>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          {docLhForm.locations?.[0]?.hospitalName || docLhForm.clinicName || 'Practice Center'}
                         </h4>
                         {docLhForm.tagline && (
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 240, marginTop: 2 }}>
+                          <div style={{ fontSize: '0.725rem', color: '#64748b', marginTop: 2 }}>
                             {docLhForm.tagline}
                           </div>
                         )}
-                        <div style={{ fontSize: '0.775rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
-                          {docLhForm.address || 'Clinic Chamber'}
+                        <div style={{ fontSize: '0.75rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
+                          {docLhForm.locations?.[0]?.department || docLhForm.address || 'OPD Chamber'}
                         </div>
+                        {docLhForm.locations?.[0]?.address && (
+                          <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                            {docLhForm.locations[0].address}
+                          </div>
+                        )}
                         <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                          {docLhForm.phone ? `Ph: ${docLhForm.phone}` : ''}
+                          {docLhForm.locations?.[0]?.phone ? `Ph: ${docLhForm.locations[0].phone}` : ''}
                         </div>
                       </div>
                     </div>
 
-                    {/* Consultation Hours strip */}
-                    {docLhForm.consultationHours && (
-                      <div style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#475569', marginBottom: 16 }}>
-                        <span>🕒 <strong>OPD Timings:</strong> {docLhForm.consultationHours}</span>
-                        <span>Official Prescription Summary</span>
+                    {/* Multi-Hospital Practice Chambers Strip */}
+                    {(docLhForm.locations || []).length > 1 ? (
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 12px', marginBottom: 16 }}>
+                        <div style={{ fontSize: '0.675rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.04em' }}>
+                          Clinical Chambers &amp; Practice Timings:
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: docLhForm.locations.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                          {docLhForm.locations.map((loc, idx) => (
+                            <div key={loc.id || idx} style={{ borderLeft: '2px solid #0284c7', paddingLeft: 8, fontSize: '0.725rem' }}>
+                              <div style={{ fontWeight: 800, color: '#0f172a' }}>
+                                🏥 {loc.hospitalName || `Hospital #${idx + 1}`}
+                              </div>
+                              {loc.department && <div style={{ color: '#475569' }}>{loc.department}</div>}
+                              {loc.address && <div style={{ color: '#64748b' }}>{loc.address}</div>}
+                              {loc.consultationHours && (
+                                <div style={{ color: '#0284c7', fontWeight: 600, marginTop: 1 }}>
+                                  🕒 {loc.consultationHours}
+                                </div>
+                              )}
+                              {loc.phone && (
+                                <div style={{ color: '#334155', fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>
+                                  📞 {loc.phone}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                    ) : (
+                      docLhForm.locations?.[0]?.consultationHours && (
+                        <div style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#475569', marginBottom: 16 }}>
+                          <span>🕒 <strong>OPD Timings:</strong> {docLhForm.locations[0].consultationHours}</span>
+                          <span>Official Prescription</span>
+                        </div>
+                      )
                     )}
 
                     {/* Simulated Body */}
