@@ -833,13 +833,17 @@ export const AdminDashboard = () => {
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="field-label">Default Qualifications *</label>
-                  <input
-                    type="text"
-                    className="modern-input"
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label className="field-label" style={{ margin: 0 }}>Default Qualifications *</label>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter for new line</span>
+                  </div>
+                  <textarea
+                    className="modern-textarea"
+                    rows={2}
+                    style={{ width: '100%', resize: 'vertical', lineHeight: 1.4 }}
                     value={clinicForm.qualifications}
                     onChange={(e) => setClinicForm({ ...clinicForm, qualifications: e.target.value })}
-                    placeholder="e.g. MBBS, FCPS (Internal Medicine)"
+                    placeholder={"e.g.\nMBBS\nFCPS (Internal Medicine)"}
                     required
                   />
                 </div>
@@ -935,7 +939,7 @@ export const AdminDashboard = () => {
                         <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brand-cyan)', margin: 0 }}>
                           {clinicForm.doctorName || 'Consultant Physician'}
                         </h4>
-                        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: 3 }}>
+                        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: 3, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
                           {clinicForm.qualifications || 'MBBS, FCPS'}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>
@@ -1027,14 +1031,17 @@ export const AdminDashboard = () => {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 14 }}>
-                    <label className="field-label">Qualifications, Degrees &amp; Fellowships *</label>
-                    <input
-                      type="text"
-                      className="modern-input"
-                      style={{ width: '100%' }}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <label className="field-label" style={{ margin: 0 }}>Qualifications, Degrees &amp; Fellowships *</label>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter to write beneath on new line</span>
+                    </div>
+                    <textarea
+                      className="modern-textarea"
+                      rows={3}
+                      style={{ width: '100%', resize: 'vertical', lineHeight: 1.45 }}
                       value={docLhForm.qualifications}
                       onChange={(e) => setDocLhForm({ ...docLhForm, qualifications: e.target.value })}
-                      placeholder="e.g. MBBS (Gold Medalist), FCPS Cardiology, MRCP (UK)"
+                      placeholder={"e.g.\nMBBS (Gold Medalist)\nFCPS Cardiology\nFellow Interventional Cardiology"}
                       required
                     />
                   </div>
@@ -1263,7 +1270,7 @@ export const AdminDashboard = () => {
                         <div style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
                           {docLhForm.specialtyTitle || 'Consultant Specialist'}
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: 2 }}>
+                        <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
                           {docLhForm.qualifications || 'MBBS, FCPS'}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 3 }}>
@@ -1605,10 +1612,11 @@ export const AdminDashboard = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div className="form-group">
                   <label className="field-label">Qualifications</label>
-                  <input
-                    type="text"
-                    className="modern-input"
-                    placeholder="MBBS, FCPS"
+                  <textarea
+                    className="modern-textarea"
+                    rows={2}
+                    style={{ resize: 'vertical', lineHeight: 1.4 }}
+                    placeholder={"MBBS\nFCPS"}
                     value={docFormData.qualifications}
                     onChange={(e) => setDocFormData({ ...docFormData, qualifications: e.target.value })}
                   />

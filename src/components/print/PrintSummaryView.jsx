@@ -492,7 +492,7 @@ export const PrintSummaryView = () => {
                     {effectiveLetterhead.specialtyTitle}
                   </div>
                 )}
-                <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, marginTop: 2 }}>
+                <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
                   {effectiveLetterhead.qualifications || 'MBBS, FCPS'}
                 </div>
                 {effectiveLetterhead.regNumber && (

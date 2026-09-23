@@ -50,13 +50,14 @@ export const ClinicSettingsModal = ({ isOpen, onClose }) => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Qualifications & Specialty</label>
-            <input
-              type="text"
+            <label className="form-label">Qualifications &amp; Specialty</label>
+            <textarea
               className="form-input"
+              rows={2}
+              style={{ resize: 'vertical', lineHeight: 1.4 }}
               value={formData.qualifications}
               onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
-              placeholder="e.g. MBBS, FCPS (Internal Medicine)"
+              placeholder={"e.g.\nMBBS\nFCPS (Internal Medicine)"}
             />
           </div>
 
