@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { usePatients } from '../../context/PatientContext';
+import { useAuth } from '../../context/AuthContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import {
   Plus,
@@ -13,7 +14,14 @@ import {
   Droplets,
   Sparkles,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Stethoscope,
+  Check,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  RotateCcw,
+  ShieldCheck
 } from 'lucide-react';
 
 export const ExaminationTab = () => {
@@ -21,13 +29,24 @@ export const ExaminationTab = () => {
     activePatient,
     addExamination,
     updateExamination,
-    deleteExamination
+    deleteExamination,
+    showToast
   } = usePatients();
+
+  const { currentUser } = useAuth();
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingExamId, setEditingExamId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [collapsedExams, setCollapsedExams] = useState({});
+
+  // Detect doctor's specialty or default to general
+  const [specialtyMode, setSpecialtyMode] = useState(() => {
+    const s = (currentUser?.specialty || '').toLowerCase();
+    if (s.includes('cardio') || s.includes('heart')) return 'cardiology';
+    if (s.includes('pulmo') || s.includes('chest') || s.includes('respir')) return 'pulmonology';
+    return 'general';
+  });
 
   const defaultVitals = {
     bpSystolic: '',
@@ -62,12 +81,59 @@ export const ExaminationTab = () => {
   const [findings, setFindings] = useState(defaultFindings);
 
   const exams = activePatient?.examinations || [];
+  const sortedExams = [...exams].sort(
+    (a, b) => new Date(b.date || 0) - new Date(a.date || 0)
+  );
+  const lastExam = sortedExams[0] || null;
 
   const handleStartAdd = () => {
     setVitals(defaultVitals);
     setFindings(defaultFindings);
     setEditingExamId(null);
     setIsAdding(true);
+  };
+
+  const handleFillNormalFindings = () => {
+    if (specialtyMode === 'cardiology') {
+      setFindings(prev => ({
+        ...prev,
+        general: 'Alert, comfortable at rest, no acute distress.',
+        headNeck: 'JVP not elevated. No carotid bruits. Thyroid normal.',
+        throatLungs: 'Chest clear. Normal bilateral air entry, no wheezes or crackles.',
+        extremities: 'No peripheral edema (+0). Peripheral pulses (radial, femoral, dorsalis pedis) present & symmetrical.',
+        pallor: 'Absent',
+        cyanosis: 'Absent',
+        clubbing: 'Absent',
+        abdomen: 'Soft, non-tender, no organomegaly.'
+      }));
+    } else if (specialtyMode === 'pulmonology') {
+      setFindings(prev => ({
+        ...prev,
+        general: 'Comfortable at rest, eupneic on room air, no accessory muscle use.',
+        throatLungs: 'Trachea central. Bilateral vesicular breath sounds throughout. Normal vocal resonance, no added sounds (no rhonchi/crackles).',
+        extremities: 'Warm peripheries, no pedal edema.',
+        cyanosis: 'Absent (no central or peripheral cyanosis)',
+        clubbing: 'Absent',
+        pallor: 'Absent'
+      }));
+    } else {
+      setFindings(prev => ({
+        ...prev,
+        general: 'Alert, conscious, well-oriented in time and space, in no acute distress.',
+        skin: 'Normal turgor, warm and dry, no rash or petechiae.',
+        headNeck: 'Normocephalic, conjunctivae clear, pharynx normal.',
+        lymphNodes: 'No palpable lymphadenopathy (cervical, axillary).',
+        throatLungs: 'Bilateral vesicular breath sounds, air entry equal, chest clear.',
+        abdomen: 'Soft, non-tender, non-distended, active bowel sounds.',
+        extremities: 'No pedal edema, peripheral pulses palpable bilaterally.',
+        musculoskeletal: 'Normal gait, full active and passive range of motion.',
+        pallor: 'Absent',
+        jaundice: 'Absent',
+        cyanosis: 'Absent',
+        clubbing: 'Absent'
+      }));
+    }
+    showToast('Pre-filled baseline normal findings');
   };
 
   const handleStartEdit = (exam) => {
@@ -158,16 +224,135 @@ export const ExaminationTab = () => {
   };
 
   if (isAdding) {
+    // Delta calculations compared to previous visit
+    const bpSysDelta = lastExam?.vitals?.bpSystolic && vitals.bpSystolic
+      ? Number(vitals.bpSystolic) - Number(lastExam.vitals.bpSystolic)
+      : null;
+    const weightDelta = lastExam?.vitals?.weight && vitals.weight
+      ? (Number(vitals.weight) - Number(lastExam.vitals.weight)).toFixed(1)
+      : null;
+
     return (
       <div style={{ marginTop: 20 }}>
-        <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>
-            {editingExamId ? 'Edit Physical Examination' : 'Add Physical Examination'}
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            Record patient vital signs and detailed 14-point physiological findings.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {editingExamId ? 'Edit Physical Examination' : 'New Physical Examination & Vitals'}
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>
+              Clinical physiological examination for <strong>{activePatient.name}</strong>
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setIsAdding(false);
+              setEditingExamId(null);
+            }}
+          >
+            Cancel
+          </button>
         </div>
+
+        {/* Specialty Selector Bar */}
+        <div className="specialty-mode-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Clinical Specialty Mode:
+            </span>
+            <div className="specialty-pills-row">
+              <button
+                type="button"
+                className={`specialty-pill-btn ${specialtyMode === 'cardiology' ? 'active cardio' : ''}`}
+                onClick={() => setSpecialtyMode('cardiology')}
+              >
+                <Heart size={13} />
+                <span>Cardiology / Heart Focus</span>
+              </button>
+              <button
+                type="button"
+                className={`specialty-pill-btn ${specialtyMode === 'pulmonology' ? 'active pulmo' : ''}`}
+                onClick={() => setSpecialtyMode('pulmonology')}
+              >
+                <Wind size={13} />
+                <span>Pulmonology / Chest Focus</span>
+              </button>
+              <button
+                type="button"
+                className={`specialty-pill-btn ${specialtyMode === 'general' ? 'active' : ''}`}
+                onClick={() => setSpecialtyMode('general')}
+              >
+                <Stethoscope size={13} />
+                <span>General 14-Point Systems</span>
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="copy-mini-btn"
+            style={{ padding: '5px 12px', fontSize: '0.775rem', borderRadius: 'var(--radius-sm)' }}
+            onClick={handleFillNormalFindings}
+            title="Pre-populate common normal clinical findings"
+          >
+            <Sparkles size={13} />
+            <span>Pre-fill Normal Findings</span>
+          </button>
+        </div>
+
+        {/* Previous Exam Comparison Benchmark Strip */}
+        {lastExam && !editingExamId && (
+          <div style={{ background: '#f8fafc', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', padding: '12px 18px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                Previous Visit Benchmark ({lastExam.formattedDate || 'Last Visit'})
+              </span>
+              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                Comparing past physiological markers with today
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.825rem' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Prior BP: </span>
+                <strong>{lastExam.vitals?.bpSystolic || '—'}/{lastExam.vitals?.bpDiastolic || '—'} mmHg</strong>
+                {bpSysDelta !== null && (
+                  <span style={{ marginLeft: 6, fontWeight: 700, color: bpSysDelta < 0 ? '#16a34a' : bpSysDelta > 0 ? '#dc2626' : 'var(--text-muted)' }}>
+                    ({bpSysDelta > 0 ? `+${bpSysDelta}` : bpSysDelta} mmHg)
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Prior Pulse: </span>
+                <strong>{lastExam.vitals?.pulse || '—'} bpm</strong>
+              </div>
+
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Prior Weight: </span>
+                <strong>{lastExam.vitals?.weight || '—'} kg</strong>
+                {weightDelta !== null && (
+                  <span style={{ marginLeft: 6, fontWeight: 700, color: Number(weightDelta) < 0 ? '#16a34a' : '#2563eb' }}>
+                    ({Number(weightDelta) > 0 ? `+${weightDelta}` : weightDelta} kg)
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Prior SpO₂: </span>
+                <strong>{lastExam.vitals?.spO2 || '—'}%</strong>
+              </div>
+
+              {lastExam.vitals?.bloodSugar && (
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Prior Sugar: </span>
+                  <strong>{lastExam.vitals.bloodSugar} mg/dL</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSave} className="card">
           {/* VITALS SECTION */}
@@ -269,9 +454,71 @@ export const ExaminationTab = () => {
             </div>
           </div>
 
+          {/* SPECIALTY CLINICAL QUICK-PICK CHIPS */}
+          <div style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+              {specialtyMode === 'cardiology' ? '🫀 Cardiology Quick Findings:' : specialtyMode === 'pulmonology' ? '🫁 Pulmonology Quick Findings:' : '🩺 General Quick Findings:'}
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {specialtyMode === 'cardiology' && (
+                <>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('throatLungs', 'S1 + S2 audible, no murmurs, no gallop S3/S4')}>
+                    + S1+S2 Normal, No Murmurs
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('throatLungs', 'Grade 2/6 Ejection Systolic Murmur at 2nd Right ICS MCL, radiating to carotids')}>
+                    + Ejection Systolic Murmur (Aortic)
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('headNeck', 'JVP not elevated (<3 cm H2O). Carotid upstroke brisk, no bruits')}>
+                    + JVP Not Elevated
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('extremities', 'Bilateral trace pitting ankle edema (+1), warm peripheries')}>
+                    + Trace Pedal Edema (+1)
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('extremities', 'Peripheral pulses (radial, posterior tibial, dorsalis pedis) intact & equal bilaterally')}>
+                    + Peripheral Pulses Intact
+                  </button>
+                </>
+              )}
+              {specialtyMode === 'pulmonology' && (
+                <>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('throatLungs', 'Bilateral vesicular breath sounds, air entry equal, lung bases clear')}>
+                    + Bilateral Vesicular, Clear Bases
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('throatLungs', 'Bilateral expiratory polyphonic wheezes, prolonged expiratory phase')}>
+                    + Expiratory Wheezes Bilaterally
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('throatLungs', 'Fine end-inspiratory crackles at right posterior lung base, non-clearing with cough')}>
+                    + Fine Basal Crackles
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('headNeck', 'Trachea central, no intercostal indrawing, symmetrical chest expansion')}>
+                    + Trachea Central &amp; Symmetrical
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('cyanosis', 'Absent (no central or peripheral cyanosis)')}>
+                    + No Cyanosis
+                  </button>
+                </>
+              )}
+              {specialtyMode === 'general' && (
+                <>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('general', 'Well-hydrated, no apparent acute distress, ambulatory')}>
+                    + No Acute Distress
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('throatLungs', 'Clear breath sounds throughout, no audible wheezing or crackles')}>
+                    + Clear Lungs
+                  </button>
+                  <button type="button" className="copy-mini-btn" onClick={() => handleInsertExamFindingChip('abdomen', 'Abdomen soft, non-tender, non-distended, active normoactive bowel sounds')}>
+                    + Soft Non-Tender Abdomen
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* EXAMINATION FINDINGS SECTION */}
           <div className="form-section">
-            <h3 className="form-section-title">Physical Findings (14 Systems)</h3>
+            <h3 className="form-section-title">
+              {specialtyMode === 'cardiology' ? 'Cardiovascular & Systemic Findings' : specialtyMode === 'pulmonology' ? 'Respiratory & Systemic Findings' : 'Physical Findings (14 Systems)'}
+            </h3>
 
             <div className="form-row">
               <div className="form-group">

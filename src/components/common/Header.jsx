@@ -23,7 +23,7 @@ export const Header = () => {
     showToast('Signed out successfully');
   };
 
-  const displayName = currentUser?.name || clinicConfig.doctorName || 'Dr. Sufyan Akram';
+  const displayName = currentUser?.name || clinicConfig.doctorName || 'Attending Physician';
   const roleTitle = isAdmin ? 'System Administrator' : (currentUser?.specialty || 'Consultant Physician');
 
   const initials = displayName
