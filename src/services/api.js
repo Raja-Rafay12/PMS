@@ -217,6 +217,17 @@ export const adminApi = {
     });
   },
 
+  getDoctorLetterheads: async () => {
+    return apiFetch('/admin/doctor-letterheads');
+  },
+
+  updateDoctorLetterhead: async (doctorId, letterheadData) => {
+    return apiFetch(`/admin/doctor-letterheads/${doctorId}`, {
+      method: 'PUT',
+      body: JSON.stringify(letterheadData)
+    });
+  },
+
   getAuditLogs: async () => {
     return apiFetch('/admin/audit-logs');
   },

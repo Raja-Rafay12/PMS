@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePatients } from '../../context/PatientContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   Download,
   Printer,
@@ -14,7 +15,8 @@ import {
   MapPin,
   Calendar,
   Sparkles,
-  Languages
+  Languages,
+  Stamp
 } from 'lucide-react';
 import {
   translateDoseType,
@@ -28,6 +30,86 @@ import {
 
 export const PrintSummaryView = () => {
   const { activePatient, clinicConfig, navigateTo, showToast } = usePatients();
+  const { currentUser, doctors = [], doctorLetterheads = {} } = useAuth();
+
+  // Selected physician for letterhead branding (defaults to logged-in doctor, or first doctor)
+  const [selectedDoctorId, setSelectedDoctorId] = useState(() => {
+    if (currentUser?.role === 'doctor' && currentUser?.id) {
+      return currentUser.id;
+    }
+    if (doctors.length > 0) {
+      return doctors[0].id;
+    }
+    return 'clinic';
+  });
+
+  // Calculate effective letterhead based on selected physician or clinic defaults
+  const effectiveLetterhead = useMemo(() => {
+    if (selectedDoctorId === 'clinic') {
+      return {
+        doctorName: clinicConfig.doctorName || 'Consultant Physician',
+        qualifications: clinicConfig.qualifications || 'MBBS, FCPS',
+        regNumber: clinicConfig.regNumber || '',
+        specialtyTitle: '',
+        clinicName: clinicConfig.clinicName || 'PatientCare Medical Center',
+        tagline: clinicConfig.tagline || '',
+        address: clinicConfig.address || '',
+        phone: clinicConfig.phone || '',
+        email: clinicConfig.email || '',
+        consultationHours: '',
+        footerNote: ''
+      };
+    }
+
+    const doc = doctors.find(d => d.id === selectedDoctorId);
+    const customLh = doctorLetterheads[selectedDoctorId];
+
+    if (customLh && customLh.enabled) {
+      return {
+        doctorName: customLh.doctorName || doc?.name || clinicConfig.doctorName || 'Consultant Physician',
+        qualifications: customLh.qualifications || doc?.qualifications || clinicConfig.qualifications || 'MBBS, FCPS',
+        regNumber: customLh.pmcNumber || doc?.pmcNumber || clinicConfig.regNumber || '',
+        specialtyTitle: customLh.specialtyTitle || (doc?.specialty ? `Consultant in ${doc.specialty}` : ''),
+        clinicName: customLh.clinicName || clinicConfig.clinicName || 'PatientCare Medical Center',
+        tagline: customLh.tagline !== undefined ? customLh.tagline : (clinicConfig.tagline || ''),
+        address: customLh.address || clinicConfig.address || '',
+        phone: customLh.phone || doc?.phone || clinicConfig.phone || '',
+        email: customLh.email || doc?.email || clinicConfig.email || '',
+        consultationHours: customLh.consultationHours || '',
+        footerNote: customLh.footerNote || ''
+      };
+    }
+
+    if (doc) {
+      return {
+        doctorName: doc.name || clinicConfig.doctorName || 'Consultant Physician',
+        qualifications: doc.qualifications || clinicConfig.qualifications || 'MBBS, FCPS',
+        regNumber: doc.pmcNumber || clinicConfig.regNumber || '',
+        specialtyTitle: doc.specialty ? `Consultant in ${doc.specialty}` : '',
+        clinicName: clinicConfig.clinicName || 'PatientCare Medical Center',
+        tagline: clinicConfig.tagline || '',
+        address: clinicConfig.address || '',
+        phone: doc.phone || clinicConfig.phone || '',
+        email: doc.email || clinicConfig.email || '',
+        consultationHours: '',
+        footerNote: ''
+      };
+    }
+
+    return {
+      doctorName: clinicConfig.doctorName || 'Consultant Physician',
+      qualifications: clinicConfig.qualifications || 'MBBS, FCPS',
+      regNumber: clinicConfig.regNumber || '',
+      specialtyTitle: '',
+      clinicName: clinicConfig.clinicName || 'PatientCare Medical Center',
+      tagline: clinicConfig.tagline || '',
+      address: clinicConfig.address || '',
+      phone: clinicConfig.phone || '',
+      email: clinicConfig.email || '',
+      consultationHours: '',
+      footerNote: ''
+    };
+  }, [selectedDoctorId, doctors, doctorLetterheads, clinicConfig]);
 
   if (!activePatient) {
     return (
@@ -131,7 +213,35 @@ export const PrintSummaryView = () => {
       <div className="print-layout">
         {/* Left Selection Panel */}
         <div className="print-selection-panel no-print">
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)', letterSpacing: '0.06em', marginBottom: 16 }}>
+          {/* Attending Physician Letterhead Selector */}
+          <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--brand-cyan)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
+              <Stethoscope size={14} />
+              <span>Attending Letterhead</span>
+            </div>
+            <select
+              className="modern-select"
+              style={{ width: '100%', fontSize: '0.85rem', padding: '8px 10px', background: 'var(--bg-input)' }}
+              value={selectedDoctorId}
+              onChange={(e) => setSelectedDoctorId(e.target.value)}
+            >
+              <option value="clinic">🏥 Clinic Master Default</option>
+              {doctors.map(d => (
+                <option key={d.id} value={d.id}>
+                  👨‍⚕️ {d.name} {d.specialty ? `(${d.specialty})` : ''} {doctorLetterheads[d.id]?.enabled ? '★' : ''}
+                </option>
+              ))}
+            </select>
+            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.3 }}>
+              {selectedDoctorId !== 'clinic' && doctorLetterheads[selectedDoctorId]?.enabled ? (
+                <span style={{ color: 'var(--brand-emerald)', fontWeight: 600 }}>✓ Physician Custom Letterhead</span>
+              ) : (
+                <span>Using default clinic letterhead formatting</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 16 }}>
             Report Inclusions
           </div>
 
@@ -296,33 +406,53 @@ export const PrintSummaryView = () => {
             </div>
 
             {/* Clinic & Doctor Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: 16, marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: 16, marginBottom: 16 }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                  {clinicConfig.doctorName || 'Consultant Physician'}
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+                  {effectiveLetterhead.doctorName || 'Consultant Physician'}
                 </h2>
-                <div style={{ fontSize: '0.875rem', color: '#0284c7', fontWeight: 600, marginTop: 2 }}>
-                  {clinicConfig.qualifications || 'MBBS, FCPS (Internal Medicine)'}
+                {effectiveLetterhead.specialtyTitle && (
+                  <div style={{ fontSize: '0.9rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
+                    {effectiveLetterhead.specialtyTitle}
+                  </div>
+                )}
+                <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, marginTop: 2 }}>
+                  {effectiveLetterhead.qualifications || 'MBBS, FCPS'}
                 </div>
-                {clinicConfig.regNumber && (
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 1 }}>
-                    Registration No: {clinicConfig.regNumber}
+                {effectiveLetterhead.regNumber && (
+                  <div style={{ fontSize: '0.775rem', color: '#64748b', marginTop: 2 }}>
+                    PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{effectiveLetterhead.regNumber}</strong>
                   </div>
                 )}
               </div>
 
               <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                  {clinicConfig.clinicName || 'PatientCare Medical Center'}
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  {effectiveLetterhead.clinicName || 'PatientCare Medical Center'}
                 </h3>
-                <div style={{ fontSize: '0.825rem', color: '#64748b', maxWidth: 280, marginTop: 2 }}>
-                  {clinicConfig.address || 'Clinic Diagnostic Center'}
+                {effectiveLetterhead.tagline && (
+                  <div style={{ fontSize: '0.775rem', color: '#64748b', maxWidth: 280, marginTop: 2 }}>
+                    {effectiveLetterhead.tagline}
+                  </div>
+                )}
+                <div style={{ fontSize: '0.8rem', color: '#475569', maxWidth: 280, marginTop: 2 }}>
+                  {effectiveLetterhead.address || 'Clinic Diagnostic Center'}
                 </div>
-                <div style={{ fontSize: '0.825rem', color: '#475569', fontWeight: 600, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                  {clinicConfig.phone ? `Ph: ${clinicConfig.phone}` : ''}
-                </div>
+                {effectiveLetterhead.phone && (
+                  <div style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                    Ph: {effectiveLetterhead.phone}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* OPD Consultation Hours Strip */}
+            {effectiveLetterhead.consultationHours && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '5px 12px', fontSize: '0.75rem', color: '#475569', marginBottom: 16 }}>
+                <span>🕒 <strong>Consultation Hours:</strong> {effectiveLetterhead.consultationHours}</span>
+                <span>Official Patient Prescription &amp; Clinical Record</span>
+              </div>
+            )}
 
             {/* Patient Demographics Bar */}
             <div
@@ -665,19 +795,25 @@ export const PrintSummaryView = () => {
             )}
 
             {/* Footer verification & doctor signature */}
-            <div style={{ marginTop: 'auto', paddingTop: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ marginTop: 'auto', paddingTop: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <QrCode size={48} color="#0f172a" />
                 <div style={{ fontSize: '0.725rem', color: '#64748b', lineHeight: 1.3 }}>
                   <div style={{ fontWeight: 700, color: '#0f172a' }}>Verified Digital Prescription</div>
                   <div>Valid across accredited pharmacies</div>
-                  <div>Scan QR to verify authentic record</div>
+                  {effectiveLetterhead.footerNote ? (
+                    <div style={{ color: '#0284c7', fontWeight: 600, marginTop: 3 }}>
+                      {effectiveLetterhead.footerNote}
+                    </div>
+                  ) : (
+                    <div>Scan QR to verify authentic record</div>
+                  )}
                 </div>
               </div>
 
               <div style={{ textAlign: 'center', width: 220, borderTop: '1px solid #0f172a', paddingTop: 8 }}>
                 <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>
-                  {clinicConfig.doctorName || 'Dr. Sufyan Akram'}
+                  {effectiveLetterhead.doctorName || 'Attending Physician'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                   Authorized Signatory &amp; Stamp

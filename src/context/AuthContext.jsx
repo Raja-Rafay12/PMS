@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi, adminApi, getStoredToken } from '../services/api';
+import { loadDoctorLetterheads, saveDoctorLetterheads } from '../services/storageService';
 
 const AuthContext = createContext(null);
 
@@ -27,6 +28,8 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
+  const [doctorLetterheads, setDoctorLetterheads] = useState(() => loadDoctorLetterheads());
+
   const [auditLogs, setAuditLogs] = useState(() => {
     try {
       const saved = localStorage.getItem(AUDIT_LOGS_KEY);
@@ -35,6 +38,10 @@ export const AuthProvider = ({ children }) => {
       return [];
     }
   });
+
+  useEffect(() => {
+    saveDoctorLetterheads(doctorLetterheads);
+  }, [doctorLetterheads]);
 
   // Verify stored session on boot
   useEffect(() => {
@@ -75,6 +82,16 @@ export const AuthProvider = ({ children }) => {
           }
         })
         .catch(err => console.warn('Admin audit logs sync notice:', err.message));
+    }
+
+    if (currentUser) {
+      adminApi.getDoctorLetterheads()
+        .then(res => {
+          if (res.success && res.doctorLetterheads) {
+            setDoctorLetterheads(prev => ({ ...prev, ...res.doctorLetterheads }));
+          }
+        })
+        .catch(err => console.warn('Doctor letterheads sync note:', err.message));
     }
   }, [currentUser]);
 
@@ -213,12 +230,44 @@ export const AuthProvider = ({ children }) => {
     recordAudit('Audit Logs Purged', 'All previous security audit records were cleared by Admin', 'admin');
   };
 
+  const updateDoctorLetterhead = async (doctorId, letterheadData) => {
+    // 1. Optimistic update in state & localStorage
+    setDoctorLetterheads(prev => {
+      const updated = {
+        ...prev,
+        [doctorId]: {
+          ...(prev[doctorId] || {}),
+          ...letterheadData,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      saveDoctorLetterheads(updated);
+      return updated;
+    });
+
+    // 2. Synchronize to backend / Supabase
+    try {
+      const res = await adminApi.updateDoctorLetterhead(doctorId, letterheadData);
+      if (res.success && res.letterhead) {
+        setDoctorLetterheads(prev => ({
+          ...prev,
+          [doctorId]: res.letterhead
+        }));
+      }
+    } catch (err) {
+      console.warn('Backend updateDoctorLetterhead notice:', err.message);
+    }
+
+    recordAudit('Doctor Letterhead Updated', `Configured clinical letterhead for doctor ID: ${doctorId}`, 'admin');
+  };
+
   const value = {
     currentUser,
     isAuthenticated: !!currentUser,
     isAdmin: currentUser?.role === 'admin',
     isDoctor: currentUser?.role === 'doctor',
     doctors,
+    doctorLetterheads,
     auditLogs,
     loginDoctor,
     loginAdmin,
@@ -227,6 +276,7 @@ export const AuthProvider = ({ children }) => {
     updateDoctor,
     deleteDoctor,
     resetDoctorPassword,
+    updateDoctorLetterhead,
     recordAudit,
     clearAuditLogs
   };

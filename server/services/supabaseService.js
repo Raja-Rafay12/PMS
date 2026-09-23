@@ -661,3 +661,72 @@ export const clearAuditLogsInSupabase = async () => {
   if (error) throw error;
   return true;
 };
+
+/**
+ * Fetches doctor-specific letterheads registry from Supabase (stored in clinic_config id: 9999).
+ */
+export const fetchDoctorLetterheadsFromSupabase = async () => {
+  if (!isSupabaseConfigured || !supabase) return {};
+
+  try {
+    const { data, error } = await supabase
+      .from('clinic_config')
+      .select('tagline')
+      .eq('id', 9999)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Supabase fetchDoctorLetterheads notice:', error.message);
+      return {};
+    }
+
+    if (data && data.tagline) {
+      try {
+        return JSON.parse(data.tagline);
+      } catch (parseErr) {
+        console.warn('Error parsing doctor letterheads JSON:', parseErr.message);
+        return {};
+      }
+    }
+  } catch (err) {
+    console.warn('fetchDoctorLetterheads exception:', err.message);
+  }
+
+  return {};
+};
+
+/**
+ * Saves doctor letterhead configuration to Supabase.
+ */
+export const saveDoctorLetterheadToSupabase = async (doctorId, letterheadData) => {
+  if (!isSupabaseConfigured || !supabase || !doctorId) return null;
+
+  try {
+    const currentRegistry = await fetchDoctorLetterheadsFromSupabase();
+    currentRegistry[doctorId] = {
+      ...(currentRegistry[doctorId] || {}),
+      ...letterheadData,
+      updatedAt: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('clinic_config')
+      .upsert({
+        id: 9999,
+        clinic_name: 'DOCTOR_LETTERHEADS_REGISTRY',
+        doctor_name: 'Multi-Physician Letterheads',
+        tagline: JSON.stringify(currentRegistry),
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.warn('Supabase saveDoctorLetterhead error:', error.message);
+    }
+
+    return currentRegistry[doctorId];
+  } catch (err) {
+    console.warn('saveDoctorLetterheadToSupabase exception:', err.message);
+    return null;
+  }
+};
+

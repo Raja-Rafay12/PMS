@@ -27,13 +27,18 @@ import {
   CheckCircle,
   XCircle,
   Filter,
-  Lock
+  Lock,
+  Stamp,
+  RotateCcw,
+  FileSignature
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
   const {
     currentUser,
     doctors,
+    doctorLetterheads = {},
+    updateDoctorLetterhead,
     addDoctor,
     updateDoctor,
     deleteDoctor,
@@ -91,6 +96,49 @@ export const AdminDashboard = () => {
     phone: clinicConfig.phone || '',
     email: clinicConfig.email || ''
   });
+
+  // Scope switcher for Letterhead Settings: 'clinic' or doctor ID
+  const [selectedLetterheadScope, setSelectedLetterheadScope] = useState('clinic');
+
+  // Doctor-specific letterhead form state
+  const [docLhForm, setDocLhForm] = useState({
+    enabled: true,
+    doctorName: '',
+    qualifications: '',
+    pmcNumber: '',
+    specialtyTitle: '',
+    clinicName: '',
+    tagline: '',
+    address: '',
+    phone: '',
+    email: '',
+    consultationHours: '',
+    footerNote: ''
+  });
+
+  // Sync doctor letterhead form when selected scope or doctors change
+  React.useEffect(() => {
+    if (selectedLetterheadScope !== 'clinic') {
+      const doc = doctors.find(d => d.id === selectedLetterheadScope);
+      if (doc) {
+        const savedLh = doctorLetterheads[doc.id] || {};
+        setDocLhForm({
+          enabled: savedLh.enabled !== undefined ? savedLh.enabled : true,
+          doctorName: savedLh.doctorName || doc.name || '',
+          qualifications: savedLh.qualifications || doc.qualifications || 'MBBS, FCPS',
+          pmcNumber: savedLh.pmcNumber || doc.pmcNumber || 'PMC-',
+          specialtyTitle: savedLh.specialtyTitle || (doc.specialty ? `Consultant in ${doc.specialty}` : 'Consultant Physician'),
+          clinicName: savedLh.clinicName || clinicConfig.clinicName || 'PatientCare Medical Center',
+          tagline: savedLh.tagline !== undefined ? savedLh.tagline : (clinicConfig.tagline || 'Specialist Outpatient Clinical Care'),
+          address: savedLh.address || clinicConfig.address || 'Clinic Diagnostic Center',
+          phone: savedLh.phone || doc.phone || clinicConfig.phone || '',
+          email: savedLh.email || doc.email || clinicConfig.email || '',
+          consultationHours: savedLh.consultationHours || 'Mon – Sat: 4:00 PM – 9:00 PM',
+          footerNote: savedLh.footerNote || 'Bring previous prescription and diagnostic reports on follow-up.'
+        });
+      }
+    }
+  }, [selectedLetterheadScope, doctors, doctorLetterheads, clinicConfig]);
 
   // Audit search
   const [auditSearch, setAuditSearch] = useState('');
@@ -225,6 +273,60 @@ export const AdminDashboard = () => {
     setClinicConfig(clinicForm);
     recordAudit('Clinic Master Settings Updated', 'Clinic letterhead and doctor branding modified', 'admin');
     showToast('Clinic Master Settings updated successfully!');
+  };
+
+  // Save Individual Doctor Letterhead
+  const handleSaveDoctorLetterhead = (e) => {
+    e.preventDefault();
+    if (!docLhForm.doctorName.trim()) {
+      showToast('Physician display name is required', 'error');
+      return;
+    }
+    const doc = doctors.find(d => d.id === selectedLetterheadScope);
+    if (!doc) return;
+
+    updateDoctorLetterhead(doc.id, docLhForm);
+
+    // Sync core profile credentials
+    updateDoctor(doc.id, {
+      name: docLhForm.doctorName,
+      qualifications: docLhForm.qualifications,
+      pmcNumber: docLhForm.pmcNumber,
+      specialty: docLhForm.specialtyTitle,
+      phone: docLhForm.phone
+    });
+
+    showToast(`Clinical letterhead saved for ${docLhForm.doctorName}`);
+  };
+
+  // Revert doctor letterhead to clinic defaults
+  const handleResetDoctorLetterhead = () => {
+    const doc = doctors.find(d => d.id === selectedLetterheadScope);
+    if (!doc) return;
+    const defaultData = {
+      enabled: false,
+      doctorName: doc.name || '',
+      qualifications: doc.qualifications || 'MBBS, FCPS',
+      pmcNumber: doc.pmcNumber || 'PMC-',
+      specialtyTitle: doc.specialty ? `Consultant in ${doc.specialty}` : 'Consultant Physician',
+      clinicName: clinicConfig.clinicName || '',
+      tagline: clinicConfig.tagline || '',
+      address: clinicConfig.address || '',
+      phone: doc.phone || clinicConfig.phone || '',
+      email: doc.email || clinicConfig.email || '',
+      consultationHours: '',
+      footerNote: ''
+    };
+    setDocLhForm(defaultData);
+    updateDoctorLetterhead(doc.id, defaultData);
+    showToast(`Letterhead for ${doc.name} reset to clinic defaults`);
+  };
+
+  // Jump from Doctor Accounts table directly to their letterhead in Tab 3
+  const handleOpenDoctorLetterhead = (doc) => {
+    setSelectedLetterheadScope(doc.id);
+    setAdminTab('letterhead');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Filtered Audit Logs
@@ -527,6 +629,14 @@ export const AdminDashboard = () => {
                       <div style={{ display: 'inline-flex', gap: 6 }}>
                         <button
                           type="button"
+                          className="btn-icon btn-icon-indigo"
+                          title="Configure Clinical Letterhead"
+                          onClick={() => handleOpenDoctorLetterhead(doc)}
+                        >
+                          <Stamp size={15} color="#6366f1" />
+                        </button>
+                        <button
+                          type="button"
                           className="btn-icon btn-icon-amber"
                           title="Reset Doctor Password"
                           onClick={() => handleTriggerResetPassword(doc)}
@@ -559,165 +669,452 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {/* TAB 3: CLINIC MASTER SETTINGS & LETTERHEAD */}
+      {/* TAB 3: CLINIC & INDIVIDUAL DOCTOR LETTERHEADS */}
       {adminTab === 'letterhead' && (
         <div>
-          <div className="tab-header-row">
+          <div className="tab-header-row" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <h2 className="tab-title">Clinic Letterhead &amp; Master Branding</h2>
+              <h2 className="tab-title">Clinical Letterheads &amp; Master Branding</h2>
               <p className="tab-desc">
-                These credentials and branding automatically populate the printed prescriptions, lab requests, and official medical certificates.
+                Configure clinic-wide master letterhead or customize independent clinical letterheads for each physician.
               </p>
+            </div>
+
+            {/* Scope Switcher: Master Clinic vs Doctors */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', padding: '5px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`segmented-tab-btn ${selectedLetterheadScope === 'clinic' ? 'active' : ''}`}
+                style={{ padding: '6px 14px', fontSize: '0.825rem' }}
+                onClick={() => setSelectedLetterheadScope('clinic')}
+              >
+                <Building2 size={14} />
+                <span>Clinic Master</span>
+              </button>
+
+              {doctors.map(d => {
+                const hasCustom = doctorLetterheads[d.id]?.enabled;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className={`segmented-tab-btn ${selectedLetterheadScope === d.id ? 'active' : ''}`}
+                    style={{ padding: '6px 14px', fontSize: '0.825rem' }}
+                    onClick={() => setSelectedLetterheadScope(d.id)}
+                  >
+                    <Stethoscope size={14} />
+                    <span>{d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`}</span>
+                    {hasCustom && (
+                      <span className="badge badge-success" style={{ fontSize: '0.625rem', padding: '1px 5px', marginLeft: 4 }}>
+                        Custom
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 24 }}>
-            {/* Form */}
-            <form onSubmit={handleSaveClinicSettings} className="card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 18, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 10 }}>
-                Letterhead Credentials Form
-              </h3>
+          {/* MODE A: CLINIC MASTER SETTINGS FORM */}
+          {selectedLetterheadScope === 'clinic' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 24 }}>
+              {/* Form */}
+              <form onSubmit={handleSaveClinicSettings} className="card" style={{ padding: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 18 }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>
+                    Clinic Master Default Credentials
+                  </h3>
+                  <span className="badge badge-indigo" style={{ fontSize: '0.725rem' }}>Global Fallback</span>
+                </div>
 
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="field-label">Chief Consultant Physician Name *</label>
-                <input
-                  type="text"
-                  className="modern-input"
-                  value={clinicForm.doctorName}
-                  onChange={(e) => setClinicForm({ ...clinicForm, doctorName: e.target.value })}
-                  placeholder="e.g. Dr. Consultant Physician"
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="field-label">Doctor Qualifications *</label>
-                <input
-                  type="text"
-                  className="modern-input"
-                  value={clinicForm.qualifications}
-                  onChange={(e) => setClinicForm({ ...clinicForm, qualifications: e.target.value })}
-                  placeholder="e.g. MBBS, FCPS (Internal Medicine), Consultant Physician"
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="field-label">PMC / PMDC Registration Number *</label>
-                <input
-                  type="text"
-                  className="modern-input"
-                  value={clinicForm.regNumber}
-                  onChange={(e) => setClinicForm({ ...clinicForm, regNumber: e.target.value })}
-                  placeholder="e.g. PMC-00000-P"
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="field-label">Clinic / Hospital Name *</label>
-                <input
-                  type="text"
-                  className="modern-input"
-                  value={clinicForm.clinicName}
-                  onChange={(e) => setClinicForm({ ...clinicForm, clinicName: e.target.value })}
-                  placeholder="e.g. PatientCare Medical Center"
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="field-label">Clinic Tagline / Subtitle</label>
-                <input
-                  type="text"
-                  className="modern-input"
-                  value={clinicForm.tagline}
-                  onChange={(e) => setClinicForm({ ...clinicForm, tagline: e.target.value })}
-                  placeholder="e.g. Quality Outpatient Care & Diagnostic Center"
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="field-label">Physical Address</label>
-                <input
-                  type="text"
-                  className="modern-input"
-                  value={clinicForm.address}
-                  onChange={(e) => setClinicForm({ ...clinicForm, address: e.target.value })}
-                  placeholder="e.g. Suite 101, Health Complex, Main Boulevard"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                <div className="form-group">
-                  <label className="field-label">Official Phone</label>
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Default Consultant Physician Name *</label>
                   <input
                     type="text"
                     className="modern-input"
-                    value={clinicForm.phone}
-                    onChange={(e) => setClinicForm({ ...clinicForm, phone: e.target.value })}
-                    placeholder="+92 300 0000000"
+                    value={clinicForm.doctorName}
+                    onChange={(e) => setClinicForm({ ...clinicForm, doctorName: e.target.value })}
+                    placeholder="e.g. Consultant Physician"
+                    required
                   />
                 </div>
-                <div className="form-group">
-                  <label className="field-label">Official Email</label>
+
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Default Qualifications *</label>
                   <input
-                    type="email"
+                    type="text"
                     className="modern-input"
-                    value={clinicForm.email}
-                    onChange={(e) => setClinicForm({ ...clinicForm, email: e.target.value })}
-                    placeholder="clinic@patientcare.org"
+                    value={clinicForm.qualifications}
+                    onChange={(e) => setClinicForm({ ...clinicForm, qualifications: e.target.value })}
+                    placeholder="e.g. MBBS, FCPS (Internal Medicine)"
+                    required
                   />
                 </div>
-              </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                <Check size={16} />
-                <span>Save Letterhead Master Settings</span>
-              </button>
-            </form>
-
-            {/* Live Letterhead Preview */}
-            <div>
-              <div className="card" style={{ padding: 24, background: '#f8fafc', border: '2px dashed var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 16 }}>
-                  Live Prescription Header Preview
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">PMC / PMDC Registration Number *</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={clinicForm.regNumber}
+                    onChange={(e) => setClinicForm({ ...clinicForm, regNumber: e.target.value })}
+                    placeholder="e.g. PMC-00000-P"
+                    required
+                  />
                 </div>
 
-                <div style={{ background: '#ffffff', padding: '24px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--brand-cyan)', paddingBottom: 14, marginBottom: 14 }}>
-                    <div>
-                      <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brand-cyan)', margin: 0 }}>
-                        {clinicForm.doctorName || 'Dr. Sufyan Akram'}
-                      </h4>
-                      <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: 3 }}>
-                        {clinicForm.qualifications || 'MBBS, FCPS (Internal Medicine)'}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>
-                        Reg: <strong style={{ color: 'var(--text-primary)' }}>{clinicForm.regNumber || 'PMC-48201-P'}</strong>
-                      </div>
-                    </div>
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Clinic / Hospital Name *</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={clinicForm.clinicName}
+                    onChange={(e) => setClinicForm({ ...clinicForm, clinicName: e.target.value })}
+                    placeholder="e.g. PatientCare Medical Center"
+                    required
+                  />
+                </div>
 
-                    <div style={{ textAlign: 'right' }}>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                        {clinicForm.clinicName || 'PatientCare Clinic'}
-                      </h4>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {clinicForm.tagline || 'Diagnostic & Care Center'}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 4 }}>
-                        {clinicForm.phone} · {clinicForm.email}
-                      </div>
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Clinic Tagline / Subtitle</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={clinicForm.tagline}
+                    onChange={(e) => setClinicForm({ ...clinicForm, tagline: e.target.value })}
+                    placeholder="e.g. Quality Outpatient Care & Diagnostic Center"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Physical Address</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={clinicForm.address}
+                    onChange={(e) => setClinicForm({ ...clinicForm, address: e.target.value })}
+                    placeholder="e.g. Suite 101, Health Complex, Main Boulevard"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                  <div className="form-group">
+                    <label className="field-label">Official Phone</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={clinicForm.phone}
+                      onChange={(e) => setClinicForm({ ...clinicForm, phone: e.target.value })}
+                      placeholder="+92 300 0000000"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="field-label">Official Email</label>
+                    <input
+                      type="email"
+                      className="modern-input"
+                      value={clinicForm.email}
+                      onChange={(e) => setClinicForm({ ...clinicForm, email: e.target.value })}
+                      placeholder="clinic@patientcare.org"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                  <Check size={16} />
+                  <span>Save Clinic Master Settings</span>
+                </button>
+              </form>
+
+              {/* Master Live Preview */}
+              <div>
+                <div className="card" style={{ padding: 24, background: '#f8fafc', border: '2px dashed var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                      Live Clinic Master Header Preview
                     </div>
+                    <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Default Layout</span>
                   </div>
 
-                  <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
-                    {clinicForm.address}
+                  <div style={{ background: '#ffffff', padding: '24px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--brand-cyan)', paddingBottom: 14, marginBottom: 14 }}>
+                      <div>
+                        <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--brand-cyan)', margin: 0 }}>
+                          {clinicForm.doctorName || 'Consultant Physician'}
+                        </h4>
+                        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: 3 }}>
+                          {clinicForm.qualifications || 'MBBS, FCPS'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>
+                          Reg: <strong style={{ color: 'var(--text-primary)' }}>{clinicForm.regNumber || 'PMC-00000-P'}</strong>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                          {clinicForm.clinicName || 'PatientCare Medical Center'}
+                        </h4>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {clinicForm.tagline || 'Quality Outpatient Care'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 4 }}>
+                          {clinicForm.phone} · {clinicForm.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+                      {clinicForm.address}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* MODE B: INDIVIDUAL DOCTOR LETTERHEAD CONFIGURATION */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 24 }}>
+              {/* Doctor Letterhead Form */}
+              <form onSubmit={handleSaveDoctorLetterhead} className="card" style={{ padding: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12, marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--brand-cyan)' }}>
+                      {docLhForm.doctorName || 'Doctor Letterhead'}
+                    </h3>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                      Custom Clinical Stationery &amp; Prescriptions
+                    </div>
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600 }}>
+                    <input
+                      type="checkbox"
+                      checked={docLhForm.enabled}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, enabled: e.target.checked })}
+                    />
+                    <span>Custom Letterhead Active</span>
+                  </label>
+                </div>
+
+                {!docLhForm.enabled && (
+                  <div className="badge badge-warning" style={{ display: 'block', padding: '10px 14px', marginBottom: 16, fontSize: '0.8rem', lineHeight: 1.4 }}>
+                    ⚠️ Custom letterhead is disabled for this doctor. Printed prescriptions and summaries will use the Clinic Master settings until enabled.
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div className="form-group">
+                    <label className="field-label">Physician Display Name *</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={docLhForm.doctorName}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, doctorName: e.target.value })}
+                      placeholder="e.g. Dr. Zain Safdar"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="field-label">PMC / PMDC Registration No. *</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={docLhForm.pmcNumber}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, pmcNumber: e.target.value })}
+                      placeholder="e.g. PMC-48201-P"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Doctor Qualifications &amp; Fellowships *</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={docLhForm.qualifications}
+                    onChange={(e) => setDocLhForm({ ...docLhForm, qualifications: e.target.value })}
+                    placeholder="e.g. MBBS (Gold Medalist), FCPS Cardiology, MRCP"
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Clinical Specialty / Designation Title</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={docLhForm.specialtyTitle}
+                    onChange={(e) => setDocLhForm({ ...docLhForm, specialtyTitle: e.target.value })}
+                    placeholder="e.g. Consultant Cardiologist &amp; Heart Specialist"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div className="form-group">
+                    <label className="field-label">Hospital / Department Name</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={docLhForm.clinicName}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, clinicName: e.target.value })}
+                      placeholder="e.g. Department of Cardiology"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="field-label">Chamber / OPD Room</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={docLhForm.address}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, address: e.target.value })}
+                      placeholder="e.g. Chamber 12, 1st Floor, Executive Wing"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="field-label">Letterhead Tagline / Clinical Focus</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={docLhForm.tagline}
+                    onChange={(e) => setDocLhForm({ ...docLhForm, tagline: e.target.value })}
+                    placeholder="e.g. Specialist in Hypertension, Coronary Angiography &amp; Heart Failure"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div className="form-group">
+                    <label className="field-label">Direct Appointment Phone</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={docLhForm.phone}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, phone: e.target.value })}
+                      placeholder="+92 336 1422773"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="field-label">Consultation / OPD Hours</label>
+                    <input
+                      type="text"
+                      className="modern-input"
+                      value={docLhForm.consultationHours}
+                      onChange={(e) => setDocLhForm({ ...docLhForm, consultationHours: e.target.value })}
+                      placeholder="e.g. Mon – Sat: 4:00 PM – 9:00 PM"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <label className="field-label">Custom Prescription Footer Advice / Note</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    value={docLhForm.footerNote}
+                    onChange={(e) => setDocLhForm({ ...docLhForm, footerNote: e.target.value })}
+                    placeholder="e.g. In case of acute chest pain, report to Emergency CCU immediately."
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                    <Check size={16} />
+                    <span>Save Doctor Letterhead</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleResetDoctorLetterhead}
+                    title="Reset to Master Clinic Defaults"
+                  >
+                    <RotateCcw size={15} />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Doctor Live A4 Preview */}
+              <div>
+                <div className="card" style={{ padding: 24, background: '#f8fafc', border: '2px dashed var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                      Physician Prescription Preview
+                    </div>
+                    {docLhForm.enabled ? (
+                      <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Active Doctor Letterhead</span>
+                    ) : (
+                      <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>Inheriting Clinic Master</span>
+                    )}
+                  </div>
+
+                  <div style={{ background: '#ffffff', padding: '24px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: 16, marginBottom: 16 }}>
+                      <div>
+                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+                          {docLhForm.doctorName || 'Attending Physician'}
+                        </h4>
+                        <div style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
+                          {docLhForm.specialtyTitle || 'Consultant Specialist'}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: 2 }}>
+                          {docLhForm.qualifications || 'MBBS, FCPS'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 3 }}>
+                          PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{docLhForm.pmcNumber || 'PMC-PENDING'}</strong>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          {docLhForm.clinicName || 'PatientCare Medical Center'}
+                        </h4>
+                        {docLhForm.tagline && (
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 240, marginTop: 2 }}>
+                            {docLhForm.tagline}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.775rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
+                          {docLhForm.address || 'Clinic Chamber'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                          {docLhForm.phone ? `Ph: ${docLhForm.phone}` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Consultation Hours strip */}
+                    {docLhForm.consultationHours && (
+                      <div style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#475569', marginBottom: 16 }}>
+                        <span>🕒 <strong>OPD Timings:</strong> {docLhForm.consultationHours}</span>
+                        <span>Official Prescription Summary</span>
+                      </div>
+                    )}
+
+                    {/* Simulated Body */}
+                    <div style={{ border: '1px dashed #e2e8f0', borderRadius: 6, padding: '20px 14px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', marginBottom: 16 }}>
+                      <span style={{ fontSize: '1.2rem', fontFamily: 'serif', fontWeight: 900, color: '#cbd5e1', marginRight: 8 }}>&#8478;</span>
+                      Prescription Items, Clinical Findings &amp; Medications print here
+                    </div>
+
+                    {/* Simulated Footer */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', maxWidth: 220, fontStyle: 'italic' }}>
+                        {docLhForm.footerNote || 'Bring previous prescription on follow-up.'}
+                      </div>
+                      <div style={{ textAlign: 'center', borderTop: '1px solid #0f172a', paddingTop: 4, minWidth: 140 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
+                          {docLhForm.doctorName || 'Dr. Zain Safdar'}
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Authorized Signature</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

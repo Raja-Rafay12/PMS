@@ -8,6 +8,8 @@ import {
   deleteDoctorRecord,
   getClinicConfig,
   updateClinicConfigRecord,
+  getDoctorLetterheads,
+  updateDoctorLetterheadRecord,
   getAuditLogs,
   clearAuditLogsRecord,
   getPatients,
@@ -24,6 +26,8 @@ import {
   deleteDoctorFromSupabase,
   fetchClinicConfigFromSupabase,
   saveClinicConfigToSupabase,
+  fetchDoctorLetterheadsFromSupabase,
+  saveDoctorLetterheadToSupabase,
   fetchAuditLogsFromSupabase,
   clearAuditLogsInSupabase,
   fetchPatientsFromSupabase,
@@ -372,6 +376,79 @@ router.put('/clinic-config', async (req, res) => {
   } catch (err) {
     console.error('Error updating clinic config:', err);
     return res.status(500).json({ success: false, error: 'Failed to update clinic config.' });
+  }
+});
+
+/**
+ * GET /api/admin/doctor-letterheads
+ * Fetch individual doctor clinical letterheads registry
+ */
+router.get('/doctor-letterheads', async (req, res) => {
+  try {
+    if (isSupabaseConfigured) {
+      try {
+        const sbLetterheads = await fetchDoctorLetterheadsFromSupabase();
+        if (sbLetterheads && Object.keys(sbLetterheads).length > 0) {
+          // Sync with local memory cache
+          for (const [docId, lh] of Object.entries(sbLetterheads)) {
+            updateDoctorLetterheadRecord(docId, lh);
+          }
+          return res.json({ success: true, doctorLetterheads: sbLetterheads });
+        }
+      } catch (sbErr) {
+        console.warn('Supabase fetchDoctorLetterheads notice:', sbErr.message);
+      }
+    }
+
+    return res.json({ success: true, doctorLetterheads: getDoctorLetterheads() });
+  } catch (err) {
+    console.error('Error fetching doctor letterheads:', err);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve doctor letterheads.' });
+  }
+});
+
+/**
+ * PUT /api/admin/doctor-letterheads/:doctorId
+ * Save or update an individual doctor's custom clinical letterhead
+ */
+router.put('/doctor-letterheads/:doctorId', async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const letterheadData = req.body;
+
+    if (!doctorId) {
+      return res.status(400).json({ success: false, error: 'Doctor ID is required.' });
+    }
+
+    let savedSb = null;
+    if (isSupabaseConfigured) {
+      try {
+        savedSb = await saveDoctorLetterheadToSupabase(doctorId, letterheadData);
+      } catch (sbErr) {
+        console.warn('Supabase saveDoctorLetterhead notice:', sbErr.message);
+      }
+    }
+
+    const localSaved = updateDoctorLetterheadRecord(doctorId, letterheadData);
+    const finalLetterhead = savedSb || localSaved;
+
+    recordAuditLog(
+      'Doctor Letterhead Updated',
+      `Updated clinical letterhead configuration for doctor ID: ${doctorId}`,
+      'admin',
+      req.user.name
+    );
+    logAuditToSupabase(
+      'Doctor Letterhead Updated',
+      req.user.name,
+      `Updated clinical letterhead configuration for doctor ID: ${doctorId}`,
+      'admin'
+    );
+
+    return res.json({ success: true, doctorId, letterhead: finalLetterhead });
+  } catch (err) {
+    console.error('Error updating doctor letterhead:', err);
+    return res.status(500).json({ success: false, error: 'Failed to update doctor letterhead.' });
   }
 });
 

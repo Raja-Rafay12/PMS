@@ -48,6 +48,26 @@ export const saveClinicConfig = (config) => {
   }
 };
 
+const DOCTOR_LETTERHEADS_KEY = 'pms_doctor_letterheads_v1';
+
+export const loadDoctorLetterheads = () => {
+  try {
+    const saved = localStorage.getItem(DOCTOR_LETTERHEADS_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (err) {
+    console.error('Failed to load doctor letterheads from localStorage:', err);
+    return {};
+  }
+};
+
+export const saveDoctorLetterheads = (letterheads) => {
+  try {
+    localStorage.setItem(DOCTOR_LETTERHEADS_KEY, JSON.stringify(letterheads || {}));
+  } catch (err) {
+    console.error('Failed to save doctor letterheads to localStorage:', err);
+  }
+};
+
 export const exportAllData = (patients, clinicConfig) => {
   const exportPayload = {
     version: '1.0',

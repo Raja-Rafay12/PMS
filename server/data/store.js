@@ -36,6 +36,7 @@ export const initStore = async () => {
   db.doctors = [];
   db.patients = [];
   db.auditLogs = [];
+  db.doctorLetterheads = {};
 
   if (isSupabaseConfigured && supabase) {
     try {
@@ -72,6 +73,7 @@ export const getDoctors = () => db.doctors || [];
 export const getAdmin = () => db.admin;
 export const getPatients = () => db.patients || [];
 export const getClinicConfig = () => db.clinicConfig || {};
+export const getDoctorLetterheads = () => db.doctorLetterheads || {};
 export const getAuditLogs = () => db.auditLogs || [];
 
 export const recordAuditLog = (action, details, category = 'auth', performedBy = 'System') => {
@@ -158,6 +160,17 @@ export const updateClinicConfigRecord = (newConfig) => {
   db.clinicConfig = { ...db.clinicConfig, ...newConfig };
   saveStore();
   return db.clinicConfig;
+};
+
+export const updateDoctorLetterheadRecord = (doctorId, letterheadData) => {
+  if (!db.doctorLetterheads) db.doctorLetterheads = {};
+  db.doctorLetterheads[doctorId] = {
+    ...(db.doctorLetterheads[doctorId] || {}),
+    ...letterheadData,
+    updatedAt: new Date().toISOString()
+  };
+  saveStore();
+  return db.doctorLetterheads[doctorId];
 };
 
 export const clearAuditLogsRecord = () => {
