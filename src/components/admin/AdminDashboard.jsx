@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePatients } from '../../context/PatientContext';
 import { ConfirmModal } from '../common/ConfirmModal';
+import { QualificationsBuilder } from '../common/QualificationsBuilder';
 import {
   ShieldCheck,
   Users,
@@ -832,21 +833,12 @@ export const AdminDashboard = () => {
                   />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <label className="field-label" style={{ margin: 0 }}>Default Qualifications *</label>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter for new line</span>
-                  </div>
-                  <textarea
-                    className="modern-input modern-textarea"
-                    rows={2}
-                    style={{ width: '100%', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit' }}
-                    value={clinicForm.qualifications}
-                    onChange={(e) => setClinicForm({ ...clinicForm, qualifications: e.target.value })}
-                    placeholder={"e.g.\nMBBS\nFCPS (Internal Medicine)"}
-                    required
-                  />
-                </div>
+                <QualificationsBuilder
+                  value={clinicForm.qualifications}
+                  onChange={(val) => setClinicForm({ ...clinicForm, qualifications: val })}
+                  label="Default Qualifications"
+                  required
+                />
 
                 <div className="form-group" style={{ marginBottom: 14 }}>
                   <label className="field-label">PMC / PMDC Registration Number *</label>
@@ -1030,21 +1022,12 @@ export const AdminDashboard = () => {
                     />
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: 14 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <label className="field-label" style={{ margin: 0 }}>Qualifications, Degrees &amp; Fellowships *</label>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Press Enter to write beneath on new line</span>
-                    </div>
-                    <textarea
-                      className="modern-input modern-textarea"
-                      rows={3}
-                      style={{ width: '100%', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', minHeight: 76 }}
-                      value={docLhForm.qualifications}
-                      onChange={(e) => setDocLhForm({ ...docLhForm, qualifications: e.target.value })}
-                      placeholder={"e.g.\nMBBS (Gold Medalist)\nFCPS Cardiology\nFellow Interventional Cardiology"}
-                      required
-                    />
-                  </div>
+                  <QualificationsBuilder
+                    value={docLhForm.qualifications}
+                    onChange={(val) => setDocLhForm({ ...docLhForm, qualifications: val })}
+                    label="Qualifications, Degrees & Fellowships"
+                    required
+                  />
 
                   <div className="form-group" style={{ marginBottom: 14 }}>
                     <label className="field-label">Clinical Specialty / Designation Title</label>

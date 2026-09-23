@@ -83,6 +83,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+input, textarea, select, button {
+  font-family: inherit;
+}
+
 /* Base Layout */
 .app-container {
   min-height: 100vh;
@@ -938,6 +942,62 @@ body {
   border-color: var(--brand-cyan);
   background-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16);
+}
+
+/* Qualifications & Degree Builder */
+.qual-builder {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition: all 0.18s ease-in-out;
+}
+
+.qual-builder:focus-within {
+  border-color: var(--brand-cyan);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+}
+
+.qual-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.qual-item:hover {
+  background: #f1f5f9;
+  border-color: var(--border-medium);
+}
+
+.qual-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--brand-cyan);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qual-chip-btn:hover {
+  background: var(--brand-cyan-light);
+  border-color: var(--brand-cyan);
+  transform: translateY(-1px);
 }
 
 /* Radio Group */
