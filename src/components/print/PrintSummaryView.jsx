@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePatients } from '../../context/PatientContext';
 import { useAuth } from '../../context/AuthContext';
+import { HeaderSectionRenderer } from '../common/HeaderSectionRenderer';
 import {
   Download,
   Printer,
@@ -116,6 +117,7 @@ export const PrintSummaryView = () => {
         layoutStyle: customLh.layoutStyle || 'split',
         dividerStyle: customLh.dividerStyle || 'solid',
         schedulePosition: customLh.schedulePosition || 'banner',
+        headerSections: customLh.headerSections || null,
         locations
       };
     }
@@ -144,6 +146,7 @@ export const PrintSummaryView = () => {
         layoutStyle: 'split',
         dividerStyle: 'solid',
         schedulePosition: 'banner',
+        headerSections: null,
         locations: [defaultLoc]
       };
     }
@@ -171,6 +174,7 @@ export const PrintSummaryView = () => {
       layoutStyle: 'split',
       dividerStyle: 'solid',
       schedulePosition: 'banner',
+      headerSections: null,
       locations: [defaultLoc]
     };
   }, [selectedDoctorId, doctors, doctorLetterheads, clinicConfig]);
@@ -544,156 +548,15 @@ export const PrintSummaryView = () => {
               &#8478;
             </div>
 
-            {/* Header with Dynamic Layout Architecture */}
-            {(() => {
-              const layoutStyle = effectiveLetterhead.layoutStyle || 'split';
-              const dividerStyle = effectiveLetterhead.dividerStyle || 'solid';
-
-              const dividerCss = {
-                paddingBottom: 16,
-                marginBottom: 16,
-                ...(dividerStyle === 'double'
-                  ? { borderBottom: '4px double #0f172a' }
-                  : dividerStyle === 'cyan-accent'
-                  ? { borderBottom: '3px solid #0284c7', boxShadow: '0 2px 4px rgba(2, 132, 199, 0.15)' }
-                  : dividerStyle === 'minimal'
-                  ? { borderBottom: '1px solid #cbd5e1' }
-                  : dividerStyle === 'none'
-                  ? { borderBottom: 'none' }
-                  : { borderBottom: '2px solid #0f172a' })
-              };
-
-              const doctorBlock = (align = 'left') => (
-                <div style={{ textAlign: align, display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
-                    {effectiveLetterhead.doctorName || 'Consultant Physician'}
-                  </h2>
-                  {effectiveLetterhead.specialtyTitle && (
-                    <div style={{ fontSize: '0.9rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
-                      {effectiveLetterhead.specialtyTitle}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
-                    {effectiveLetterhead.qualifications || 'MBBS, FCPS'}
-                  </div>
-                  {effectiveLetterhead.regNumber && (
-                    <div style={{ fontSize: '0.775rem', color: '#64748b', marginTop: 2 }}>
-                      PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{effectiveLetterhead.regNumber}</strong>
-                    </div>
-                  )}
-                </div>
-              );
-
-              const hospitalBlock = (align = 'right') => (
-                <div style={{ textAlign: align, display: 'flex', flexDirection: 'column', alignItems: align === 'left' ? 'flex-start' : align === 'center' ? 'center' : 'flex-end', maxWidth: align === 'center' ? '100%' : 350 }}>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    {activeLocation ? activeLocation.hospitalName : (effectiveLetterhead.locations[0]?.hospitalName || effectiveLetterhead.clinicName || 'PatientCare Medical Center')}
-                  </h3>
-                  {effectiveLetterhead.tagline && (
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
-                      {effectiveLetterhead.tagline}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '0.775rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
-                    {activeLocation ? (activeLocation.department || activeLocation.address) : (effectiveLetterhead.locations[0]?.department || effectiveLetterhead.address || 'Clinic Diagnostic Center')}
-                  </div>
-                  {activeLocation?.address && activeLocation?.department && (
-                    <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
-                      {activeLocation.address}
-                    </div>
-                  )}
-                  {(activeLocation?.phone || effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone) && (
-                    <div style={{ fontSize: '0.775rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                      Ph: {activeLocation ? activeLocation.phone : (effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone)}
-                    </div>
-                  )}
-                </div>
-              );
-
-              if (layoutStyle === 'centered') {
-                return (
-                  <div style={{ ...dividerCss, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                    {doctorBlock('center')}
-                    <div style={{ width: 48, height: 2, background: '#0284c7', margin: '10px auto', borderRadius: 2 }} />
-                    {hospitalBlock('center')}
-                  </div>
-                );
-              }
-
-              if (layoutStyle === 'inverted') {
-                return (
-                  <div style={{ ...dividerCss, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    {hospitalBlock('left')}
-                    {doctorBlock('right')}
-                  </div>
-                );
-              }
-
-              if (layoutStyle === 'stacked') {
-                return (
-                  <div style={{ ...dividerCss, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderLeft: '4px solid #0284c7', paddingLeft: 16 }}>
-                    {doctorBlock('left')}
-                    <div style={{ width: '100%', height: 1, background: '#e2e8f0', margin: '8px 0' }} />
-                    {hospitalBlock('left')}
-                  </div>
-                );
-              }
-
-              // Default: 'split'
-              return (
-                <div style={{ ...dividerCss, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  {doctorBlock('left')}
-                  {hospitalBlock('right')}
-                </div>
-              );
-            })()}
-
-            {/* Practice Schedule or Multi-Hospital Chambers Strip */}
-            {activeLocation ? (
-              activeLocation.consultationHours && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '6px 12px', fontSize: '0.75rem', color: '#475569', marginBottom: 16 }}>
-                  <span>🏥 <strong>{activeLocation.hospitalName}:</strong> {activeLocation.consultationHours} {activeLocation.department ? `· ${activeLocation.department}` : ''}</span>
-                  <span>Official Patient Prescription &amp; Clinical Record</span>
-                </div>
-              )
-            ) : (
-              (effectiveLetterhead.locations || []).length > 1 ? (
-                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 6, padding: '9px 12px', marginBottom: 16 }}>
-                  <div style={{ fontSize: '0.675rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.04em', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Clinical Practice Chambers &amp; Schedule</span>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>Active Multi-Hospital Practice</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: effectiveLetterhead.locations.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
-                    {effectiveLetterhead.locations.map((loc, idx) => (
-                      <div key={loc.id || idx} style={{ borderLeft: '2px solid #0284c7', paddingLeft: 8, fontSize: '0.735rem' }}>
-                        <div style={{ fontWeight: 800, color: '#0f172a' }}>
-                          🏥 {loc.hospitalName}
-                        </div>
-                        {loc.department && <div style={{ color: '#334155', fontWeight: 600 }}>{loc.department}</div>}
-                        {loc.address && <div style={{ color: '#64748b', fontSize: '0.7rem' }}>{loc.address}</div>}
-                        {loc.consultationHours && (
-                          <div style={{ color: '#0284c7', fontWeight: 700, marginTop: 1 }}>
-                            🕒 {loc.consultationHours}
-                          </div>
-                        )}
-                        {loc.phone && (
-                          <div style={{ color: '#475569', fontFamily: 'var(--font-mono)', fontSize: '0.685rem' }}>
-                            📞 {loc.phone}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                effectiveLetterhead.consultationHours && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '5px 12px', fontSize: '0.75rem', color: '#475569', marginBottom: 16 }}>
-                    <span>🕒 <strong>Consultation Hours:</strong> {effectiveLetterhead.consultationHours}</span>
-                    <span>Official Patient Prescription &amp; Clinical Record</span>
-                  </div>
-                )
-              )
-            )}
+            {/* Dynamic Drag-to-Move Header Sections */}
+            <HeaderSectionRenderer
+              sections={effectiveLetterhead.headerSections}
+              data={{
+                ...effectiveLetterhead,
+                activeLocation
+              }}
+              isPreview={false}
+            />
 
             {/* Patient Demographics Bar */}
             {(() => {
