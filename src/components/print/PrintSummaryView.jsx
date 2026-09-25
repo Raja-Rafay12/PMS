@@ -77,6 +77,9 @@ export const PrintSummaryView = () => {
         email: clinicConfig.email || '',
         consultationHours: '',
         footerNote: '',
+        layoutStyle: clinicConfig.layoutStyle || 'split',
+        dividerStyle: clinicConfig.dividerStyle || 'solid',
+        schedulePosition: clinicConfig.schedulePosition || 'banner',
         locations: [defaultLoc]
       };
     }
@@ -110,6 +113,9 @@ export const PrintSummaryView = () => {
         email: customLh.email || doc?.email || clinicConfig.email || '',
         consultationHours: locations[0]?.consultationHours || customLh.consultationHours || '',
         footerNote: customLh.footerNote || '',
+        layoutStyle: customLh.layoutStyle || 'split',
+        dividerStyle: customLh.dividerStyle || 'solid',
+        schedulePosition: customLh.schedulePosition || 'banner',
         locations
       };
     }
@@ -135,6 +141,9 @@ export const PrintSummaryView = () => {
         email: doc.email || clinicConfig.email || '',
         consultationHours: '',
         footerNote: '',
+        layoutStyle: 'split',
+        dividerStyle: 'solid',
+        schedulePosition: 'banner',
         locations: [defaultLoc]
       };
     }
@@ -159,6 +168,9 @@ export const PrintSummaryView = () => {
       email: clinicConfig.email || '',
       consultationHours: '',
       footerNote: '',
+      layoutStyle: 'split',
+      dividerStyle: 'solid',
+      schedulePosition: 'banner',
       locations: [defaultLoc]
     };
   }, [selectedDoctorId, doctors, doctorLetterheads, clinicConfig]);
@@ -532,51 +544,109 @@ export const PrintSummaryView = () => {
               &#8478;
             </div>
 
-            {/* Clinic & Doctor Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: 16, marginBottom: 16 }}>
-              <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
-                  {effectiveLetterhead.doctorName || 'Consultant Physician'}
-                </h2>
-                {effectiveLetterhead.specialtyTitle && (
-                  <div style={{ fontSize: '0.9rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
-                    {effectiveLetterhead.specialtyTitle}
-                  </div>
-                )}
-                <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
-                  {effectiveLetterhead.qualifications || 'MBBS, FCPS'}
-                </div>
-                {effectiveLetterhead.regNumber && (
-                  <div style={{ fontSize: '0.775rem', color: '#64748b', marginTop: 2 }}>
-                    PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{effectiveLetterhead.regNumber}</strong>
-                  </div>
-                )}
-              </div>
+            {/* Header with Dynamic Layout Architecture */}
+            {(() => {
+              const layoutStyle = effectiveLetterhead.layoutStyle || 'split';
+              const dividerStyle = effectiveLetterhead.dividerStyle || 'solid';
 
-              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', maxWidth: 350 }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  {activeLocation ? activeLocation.hospitalName : (effectiveLetterhead.locations[0]?.hospitalName || effectiveLetterhead.clinicName || 'PatientCare Medical Center')}
-                </h3>
-                {effectiveLetterhead.tagline && (
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
-                    {effectiveLetterhead.tagline}
+              const dividerCss = {
+                paddingBottom: 16,
+                marginBottom: 16,
+                ...(dividerStyle === 'double'
+                  ? { borderBottom: '4px double #0f172a' }
+                  : dividerStyle === 'cyan-accent'
+                  ? { borderBottom: '3px solid #0284c7', boxShadow: '0 2px 4px rgba(2, 132, 199, 0.15)' }
+                  : dividerStyle === 'minimal'
+                  ? { borderBottom: '1px solid #cbd5e1' }
+                  : dividerStyle === 'none'
+                  ? { borderBottom: 'none' }
+                  : { borderBottom: '2px solid #0f172a' })
+              };
+
+              const doctorBlock = (align = 'left') => (
+                <div style={{ textAlign: align, display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start' }}>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+                    {effectiveLetterhead.doctorName || 'Consultant Physician'}
+                  </h2>
+                  {effectiveLetterhead.specialtyTitle && (
+                    <div style={{ fontSize: '0.9rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
+                      {effectiveLetterhead.specialtyTitle}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
+                    {effectiveLetterhead.qualifications || 'MBBS, FCPS'}
                   </div>
-                )}
-                <div style={{ fontSize: '0.775rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
-                  {activeLocation ? (activeLocation.department || activeLocation.address) : (effectiveLetterhead.locations[0]?.department || effectiveLetterhead.address || 'Clinic Diagnostic Center')}
+                  {effectiveLetterhead.regNumber && (
+                    <div style={{ fontSize: '0.775rem', color: '#64748b', marginTop: 2 }}>
+                      PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{effectiveLetterhead.regNumber}</strong>
+                    </div>
+                  )}
                 </div>
-                {activeLocation?.address && activeLocation?.department && (
-                  <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
-                    {activeLocation.address}
+              );
+
+              const hospitalBlock = (align = 'right') => (
+                <div style={{ textAlign: align, display: 'flex', flexDirection: 'column', alignItems: align === 'left' ? 'flex-start' : align === 'center' ? 'center' : 'flex-end', maxWidth: align === 'center' ? '100%' : 350 }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    {activeLocation ? activeLocation.hospitalName : (effectiveLetterhead.locations[0]?.hospitalName || effectiveLetterhead.clinicName || 'PatientCare Medical Center')}
+                  </h3>
+                  {effectiveLetterhead.tagline && (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
+                      {effectiveLetterhead.tagline}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.775rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
+                    {activeLocation ? (activeLocation.department || activeLocation.address) : (effectiveLetterhead.locations[0]?.department || effectiveLetterhead.address || 'Clinic Diagnostic Center')}
                   </div>
-                )}
-                {(activeLocation?.phone || effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone) && (
-                  <div style={{ fontSize: '0.775rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                    Ph: {activeLocation ? activeLocation.phone : (effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone)}
+                  {activeLocation?.address && activeLocation?.department && (
+                    <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                      {activeLocation.address}
+                    </div>
+                  )}
+                  {(activeLocation?.phone || effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone) && (
+                    <div style={{ fontSize: '0.775rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                      Ph: {activeLocation ? activeLocation.phone : (effectiveLetterhead.locations[0]?.phone || effectiveLetterhead.phone)}
+                    </div>
+                  )}
+                </div>
+              );
+
+              if (layoutStyle === 'centered') {
+                return (
+                  <div style={{ ...dividerCss, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    {doctorBlock('center')}
+                    <div style={{ width: 48, height: 2, background: '#0284c7', margin: '10px auto', borderRadius: 2 }} />
+                    {hospitalBlock('center')}
                   </div>
-                )}
-              </div>
-            </div>
+                );
+              }
+
+              if (layoutStyle === 'inverted') {
+                return (
+                  <div style={{ ...dividerCss, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    {hospitalBlock('left')}
+                    {doctorBlock('right')}
+                  </div>
+                );
+              }
+
+              if (layoutStyle === 'stacked') {
+                return (
+                  <div style={{ ...dividerCss, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderLeft: '4px solid #0284c7', paddingLeft: 16 }}>
+                    {doctorBlock('left')}
+                    <div style={{ width: '100%', height: 1, background: '#e2e8f0', margin: '8px 0' }} />
+                    {hospitalBlock('left')}
+                  </div>
+                );
+              }
+
+              // Default: 'split'
+              return (
+                <div style={{ ...dividerCss, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  {doctorBlock('left')}
+                  {hospitalBlock('right')}
+                </div>
+              );
+            })()}
 
             {/* Practice Schedule or Multi-Hospital Chambers Strip */}
             {activeLocation ? (
@@ -626,44 +696,58 @@ export const PrintSummaryView = () => {
             )}
 
             {/* Patient Demographics Bar */}
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '12px 18px',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
-                gap: 12,
-                fontSize: '0.85rem',
-                marginBottom: 24
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Patient Name</div>
-                <div style={{ fontWeight: 800, fontSize: '0.975rem', color: '#0f172a' }}>{activePatient.name}</div>
-              </div>
+            {(() => {
+              const hasBloodGroup = Boolean(
+                activePatient.bloodGroup &&
+                activePatient.bloodGroup.trim() !== '' &&
+                activePatient.bloodGroup !== '—' &&
+                activePatient.bloodGroup.toLowerCase() !== 'unknown' &&
+                activePatient.bloodGroup.toLowerCase() !== 'n/a'
+              );
 
-              <div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Age / Gender</div>
-                <div style={{ fontWeight: 600 }}>{formatAgeDisplay(activePatient)} / {activePatient.gender}</div>
-              </div>
+              return (
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '12px 18px',
+                    display: 'grid',
+                    gridTemplateColumns: hasBloodGroup ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)',
+                    gap: 12,
+                    fontSize: '0.85rem',
+                    marginBottom: 24
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Patient Name</div>
+                    <div style={{ fontWeight: 800, fontSize: '0.975rem', color: '#0f172a' }}>{activePatient.name}</div>
+                  </div>
 
-              <div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Phone / MRN</div>
-                <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{activePatient.phone}</div>
-              </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Age / Gender</div>
+                    <div style={{ fontWeight: 600 }}>{formatAgeDisplay(activePatient)} / {activePatient.gender}</div>
+                  </div>
 
-              <div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Blood Group</div>
-                <div style={{ fontWeight: 700, color: '#b91c1c' }}>{activePatient.bloodGroup || '—'}</div>
-              </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Phone / MRN</div>
+                    <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{activePatient.phone}</div>
+                  </div>
 
-              <div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Consultation Date</div>
-                <div style={{ fontWeight: 600 }}>{currentDateFormatted}</div>
-              </div>
-            </div>
+                  {hasBloodGroup && (
+                    <div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Blood Group</div>
+                      <div style={{ fontWeight: 700, color: '#b91c1c' }}>{activePatient.bloodGroup}</div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Consultation Date</div>
+                    <div style={{ fontWeight: 600 }}>{currentDateFormatted}</div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Clinical Notes Section */}
             {notesToPrint.length > 0 && (

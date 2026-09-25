@@ -31,7 +31,11 @@ import {
   Lock,
   Stamp,
   RotateCcw,
-  FileSignature
+  FileSignature,
+  Layout,
+  AlignCenter,
+  AlignLeft,
+  Columns
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -111,6 +115,9 @@ export const AdminDashboard = () => {
     tagline: '',
     email: '',
     footerNote: '',
+    layoutStyle: 'split', // 'split' | 'inverted' | 'centered' | 'stacked'
+    dividerStyle: 'solid', // 'solid' | 'double' | 'cyan-accent' | 'minimal' | 'none'
+    schedulePosition: 'banner', // 'banner' | 'compact'
     locations: [
       {
         id: 'loc-1',
@@ -160,6 +167,9 @@ export const AdminDashboard = () => {
           tagline: savedLh.tagline !== undefined ? savedLh.tagline : (clinicConfig.tagline || 'Specialist Outpatient Clinical Care'),
           email: savedLh.email || doc.email || clinicConfig.email || '',
           footerNote: savedLh.footerNote || 'Bring previous prescription and diagnostic reports on follow-up.',
+          layoutStyle: savedLh.layoutStyle || 'split',
+          dividerStyle: savedLh.dividerStyle || 'solid',
+          schedulePosition: savedLh.schedulePosition || 'banner',
           locations: initialLocations,
           clinicName: initialLocations[0]?.hospitalName || savedLh.clinicName || '',
           address: initialLocations[0]?.department || savedLh.address || '',
@@ -400,6 +410,9 @@ export const AdminDashboard = () => {
       email: doc.email || clinicConfig.email || '',
       consultationHours: '',
       footerNote: '',
+      layoutStyle: 'split',
+      dividerStyle: 'solid',
+      schedulePosition: 'banner',
       locations: [
         {
           id: 'loc-1',
@@ -1180,10 +1193,141 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Section 3: Prescription Footer & Contact */}
+                {/* Section 3: Header Architecture & Custom Layout Preferences */}
+                <div style={{ background: 'var(--bg-card)', padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border-subtle)', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)', letterSpacing: '0.05em' }}>
+                        3. Letterhead Header Layout &amp; Alignment Preference
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Choose how the doctor credentials and hospital sections are oriented and aligned on prescriptions.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Layout Architecture Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: 16 }}>
+                    {/* Option 1: Horizontal Split */}
+                    <div
+                      onClick={() => setDocLhForm({ ...docLhForm, layoutStyle: 'split' })}
+                      style={{
+                        border: (docLhForm.layoutStyle || 'split') === 'split' ? '2px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                        background: (docLhForm.layoutStyle || 'split') === 'split' ? 'var(--brand-cyan-light)' : 'var(--bg-page)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '12px 14px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>↔ Executive Split</span>
+                        {(docLhForm.layoutStyle || 'split') === 'split' && <span className="badge badge-info" style={{ fontSize: '0.625rem', padding: '1px 6px' }}>Active</span>}
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                        Doctor on Left, Hospital &amp; Chambers on Right.
+                      </div>
+                    </div>
+
+                    {/* Option 2: Centered Clinical */}
+                    <div
+                      onClick={() => setDocLhForm({ ...docLhForm, layoutStyle: 'centered' })}
+                      style={{
+                        border: docLhForm.layoutStyle === 'centered' ? '2px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                        background: docLhForm.layoutStyle === 'centered' ? 'var(--brand-cyan-light)' : 'var(--bg-page)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '12px 14px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>↕ Centered Classic</span>
+                        {docLhForm.layoutStyle === 'centered' && <span className="badge badge-info" style={{ fontSize: '0.625rem', padding: '1px 6px' }}>Active</span>}
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                        Doctor &amp; Hospital centered symmetrically at the top.
+                      </div>
+                    </div>
+
+                    {/* Option 3: Inverted Split */}
+                    <div
+                      onClick={() => setDocLhForm({ ...docLhForm, layoutStyle: 'inverted' })}
+                      style={{
+                        border: docLhForm.layoutStyle === 'inverted' ? '2px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                        background: docLhForm.layoutStyle === 'inverted' ? 'var(--brand-cyan-light)' : 'var(--bg-page)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '12px 14px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>⇄ Hospital First</span>
+                        {docLhForm.layoutStyle === 'inverted' && <span className="badge badge-info" style={{ fontSize: '0.625rem', padding: '1px 6px' }}>Active</span>}
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                        Hospital &amp; Chambers on Left, Doctor info on Right.
+                      </div>
+                    </div>
+
+                    {/* Option 4: Vertical Stacked */}
+                    <div
+                      onClick={() => setDocLhForm({ ...docLhForm, layoutStyle: 'stacked' })}
+                      style={{
+                        border: docLhForm.layoutStyle === 'stacked' ? '2px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                        background: docLhForm.layoutStyle === 'stacked' ? 'var(--brand-cyan-light)' : 'var(--bg-page)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '12px 14px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>📄 Modern Stacked</span>
+                        {docLhForm.layoutStyle === 'stacked' && <span className="badge badge-info" style={{ fontSize: '0.625rem', padding: '1px 6px' }}>Active</span>}
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                        Doctor credentials with Hospital stacked vertically beneath.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Header Divider Line Style */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                    <div className="form-group">
+                      <label className="field-label">Header Divider Style</label>
+                      <select
+                        className="modern-select"
+                        value={docLhForm.dividerStyle || 'solid'}
+                        onChange={(e) => setDocLhForm({ ...docLhForm, dividerStyle: e.target.value })}
+                      >
+                        <option value="solid">Dark Slate Solid Rule (Classic)</option>
+                        <option value="double">Double Rule (Academic / Prestigious)</option>
+                        <option value="cyan-accent">Vibrant Cyan Accent Bar (Modern)</option>
+                        <option value="minimal">Subtle 1px Border (Clean)</option>
+                        <option value="none">No Divider Line (Open Minimalist)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="field-label">Chambers &amp; Schedule Display</label>
+                      <select
+                        className="modern-select"
+                        value={docLhForm.schedulePosition || 'banner'}
+                        onChange={(e) => setDocLhForm({ ...docLhForm, schedulePosition: e.target.value })}
+                      >
+                        <option value="banner">Full-Width Schedule Box Below Header</option>
+                        <option value="compact">Compact Single-Row Tag Strip</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 4: Prescription Footer & Contact */}
                 <div style={{ background: 'var(--bg-card)', padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border-subtle)', marginBottom: 20 }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)', letterSpacing: '0.05em', marginBottom: 14 }}>
-                    3. Prescription Footer Instructions &amp; Email
+                    4. Prescription Footer Instructions &amp; Email
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 14 }}>
@@ -1244,45 +1388,107 @@ export const AdminDashboard = () => {
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '24px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: 16, marginBottom: 16 }}>
-                      <div>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-                          {docLhForm.doctorName || 'Attending Physician'}
-                        </h4>
-                        <div style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
-                          {docLhForm.specialtyTitle || 'Consultant Specialist'}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
-                          {docLhForm.qualifications || 'MBBS, FCPS'}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 3 }}>
-                          PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{docLhForm.pmcNumber || 'PMC-PENDING'}</strong>
-                        </div>
-                      </div>
+                    {/* Header with Dynamic Layout Architecture */}
+                    {(() => {
+                      const layoutStyle = docLhForm.layoutStyle || 'split';
+                      const dividerStyle = docLhForm.dividerStyle || 'solid';
 
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', maxWidth: 260 }}>
-                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                          {docLhForm.locations?.[0]?.hospitalName || docLhForm.clinicName || 'Practice Center'}
-                        </h4>
-                        {docLhForm.tagline && (
-                          <div style={{ fontSize: '0.725rem', color: '#64748b', marginTop: 2 }}>
-                            {docLhForm.tagline}
+                      const dividerCss = {
+                        paddingBottom: 16,
+                        marginBottom: 16,
+                        ...(dividerStyle === 'double'
+                          ? { borderBottom: '4px double #0f172a' }
+                          : dividerStyle === 'cyan-accent'
+                          ? { borderBottom: '3px solid #0284c7', boxShadow: '0 2px 4px rgba(2, 132, 199, 0.15)' }
+                          : dividerStyle === 'minimal'
+                          ? { borderBottom: '1px solid #cbd5e1' }
+                          : dividerStyle === 'none'
+                          ? { borderBottom: 'none' }
+                          : { borderBottom: '2px solid #0f172a' })
+                      };
+
+                      const doctorBlock = (align = 'left') => (
+                        <div style={{ textAlign: align, display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start' }}>
+                          <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+                            {docLhForm.doctorName || 'Attending Physician'}
+                          </h4>
+                          {docLhForm.specialtyTitle && (
+                            <div style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700, marginTop: 2 }}>
+                              {docLhForm.specialtyTitle}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600, marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
+                            {docLhForm.qualifications || 'MBBS, FCPS'}
                           </div>
-                        )}
-                        <div style={{ fontSize: '0.75rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
-                          {docLhForm.locations?.[0]?.department || docLhForm.address || 'OPD Chamber'}
+                          {docLhForm.pmcNumber && (
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 3 }}>
+                              PMDC / PMC Reg: <strong style={{ color: '#0f172a' }}>{docLhForm.pmcNumber}</strong>
+                            </div>
+                          )}
                         </div>
-                        {docLhForm.locations?.[0]?.address && (
-                          <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
-                            {docLhForm.locations[0].address}
+                      );
+
+                      const hospitalBlock = (align = 'right') => (
+                        <div style={{ textAlign: align, display: 'flex', flexDirection: 'column', alignItems: align === 'left' ? 'flex-start' : align === 'center' ? 'center' : 'flex-end', maxWidth: align === 'center' ? '100%' : 260 }}>
+                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                            {docLhForm.locations?.[0]?.hospitalName || docLhForm.clinicName || 'Practice Center'}
+                          </h4>
+                          {docLhForm.tagline && (
+                            <div style={{ fontSize: '0.725rem', color: '#64748b', marginTop: 2 }}>
+                              {docLhForm.tagline}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.75rem', color: '#334155', fontWeight: 600, marginTop: 3 }}>
+                            {docLhForm.locations?.[0]?.department || docLhForm.address || 'OPD Chamber'}
                           </div>
-                        )}
-                        <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                          {docLhForm.locations?.[0]?.phone ? `Ph: ${docLhForm.locations[0].phone}` : ''}
+                          {docLhForm.locations?.[0]?.address && (
+                            <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                              {docLhForm.locations[0].address}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                            {docLhForm.locations?.[0]?.phone ? `Ph: ${docLhForm.locations[0].phone}` : ''}
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+
+                      if (layoutStyle === 'centered') {
+                        return (
+                          <div style={{ ...dividerCss, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                            {doctorBlock('center')}
+                            <div style={{ width: 44, height: 2, background: '#0284c7', margin: '10px auto', borderRadius: 2 }} />
+                            {hospitalBlock('center')}
+                          </div>
+                        );
+                      }
+
+                      if (layoutStyle === 'inverted') {
+                        return (
+                          <div style={{ ...dividerCss, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            {hospitalBlock('left')}
+                            {doctorBlock('right')}
+                          </div>
+                        );
+                      }
+
+                      if (layoutStyle === 'stacked') {
+                        return (
+                          <div style={{ ...dividerCss, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderLeft: '4px solid #0284c7', paddingLeft: 16 }}>
+                            {doctorBlock('left')}
+                            <div style={{ width: '100%', height: 1, background: '#e2e8f0', margin: '8px 0' }} />
+                            {hospitalBlock('left')}
+                          </div>
+                        );
+                      }
+
+                      // Default: 'split'
+                      return (
+                        <div style={{ ...dividerCss, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          {doctorBlock('left')}
+                          {hospitalBlock('right')}
+                        </div>
+                      );
+                    })()}
 
                     {/* Multi-Hospital Practice Chambers Strip */}
                     {(docLhForm.locations || []).length > 1 ? (
