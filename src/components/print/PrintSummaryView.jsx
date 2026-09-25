@@ -3,6 +3,7 @@ import { usePatients } from '../../context/PatientContext';
 import { useAuth } from '../../context/AuthContext';
 import { HeaderSectionRenderer } from '../common/HeaderSectionRenderer';
 import { PrescriptionSectionRenderer } from '../common/PrescriptionSectionRenderer';
+import { DoctorLayoutCustomizerModal } from './DoctorLayoutCustomizerModal';
 import {
   Download,
   Printer,
@@ -18,7 +19,8 @@ import {
   Calendar,
   Sparkles,
   Languages,
-  Stamp
+  Stamp,
+  Sliders
 } from 'lucide-react';
 import {
   translateDoseType,
@@ -32,8 +34,11 @@ import {
 
 export const PrintSummaryView = () => {
   const { activePatient, clinicConfig, navigateTo, showToast } = usePatients();
-  const { currentUser, doctors = [], doctorLetterheads = {} } = useAuth();
+  const { currentUser, doctors = [], doctorLetterheads = {}, updateDoctorLetterhead } = useAuth();
   const isDoctorUser = currentUser?.role === 'doctor';
+
+  // Toggle for Doctor Layout & Letterhead Customizer Modal
+  const [showLayoutModal, setShowLayoutModal] = useState(false);
 
   // Selected physician for letterhead branding (strictly locked to logged-in doctor, or first doctor for admin)
   const [selectedDoctorId, setSelectedDoctorId] = useState(() => {
@@ -182,6 +187,21 @@ export const PrintSummaryView = () => {
       locations: [defaultLoc]
     };
   }, [selectedDoctorId, doctors, doctorLetterheads, clinicConfig]);
+
+  // Save updated letterhead configuration from in-page customizer modal
+  const handleSaveDoctorLayout = async (updatedData) => {
+    try {
+      const targetDocId = (isDoctorUser && currentUser?.id)
+        ? currentUser.id
+        : (selectedDoctorId !== 'clinic' ? selectedDoctorId : (doctors[0]?.id || 'clinic'));
+
+      await updateDoctorLetterhead(targetDocId, updatedData);
+      showToast('Prescription layout & letterhead updated successfully!', 'success');
+    } catch (err) {
+      console.error('Failed to update letterhead:', err);
+      showToast('Failed to save layout: ' + err.message, 'error');
+    }
+  };
 
   // Selected specific location if chosen
   const activeLocation = useMemo(() => {
@@ -365,13 +385,38 @@ export const PrintSummaryView = () => {
               </>
             )}
 
-            {/* Practice Hospital Today Dropdown */}
-            {effectiveLetterhead.locations && effectiveLetterhead.locations.length > 1 && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Practice Hospital Today Dropdown & Edit Layout Button */}
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Building2 size={13} color="var(--brand-cyan)" />
                   <span>Practice Hospital Today:</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLayoutModal(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    borderRadius: 4,
+                    height: 26,
+                    fontWeight: 700,
+                    color: 'var(--brand-cyan)',
+                    borderColor: 'var(--brand-cyan-light)',
+                    background: 'var(--brand-cyan-light, #e0f2fe)'
+                  }}
+                  title="Customize prescription body layout and doctor letterhead"
+                >
+                  <Sliders size={12} />
+                  <span>Edit Layout</span>
+                </button>
+              </div>
+
+              {effectiveLetterhead.locations && effectiveLetterhead.locations.length > 1 ? (
                 <select
                   className="modern-select"
                   value={selectedLocationId}
@@ -384,8 +429,12 @@ export const PrintSummaryView = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  🏥 {effectiveLetterhead.locations?.[0]?.hospitalName || effectiveLetterhead.clinicName || 'PatientCare Medical Center'}
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 16 }}>
@@ -578,6 +627,16 @@ export const PrintSummaryView = () => {
           </div>
         </div>
       </div>
+
+      {/* Doctor Layout & Letterhead Customizer Modal */}
+      <DoctorLayoutCustomizerModal
+        isOpen={showLayoutModal}
+        onClose={() => setShowLayoutModal(false)}
+        doctorId={selectedDoctorId}
+        doctorName={effectiveLetterhead.doctorName || currentUser?.name}
+        currentLetterhead={effectiveLetterhead}
+        onSave={handleSaveDoctorLayout}
+      />
     </div>
   );
 };

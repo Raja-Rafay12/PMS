@@ -199,28 +199,41 @@ export const PrescriptionSectionRenderer = ({
         if (!notesToPrint || notesToPrint.length === 0) return null;
         return (
           <div style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 3, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📝</span>
-              <span>Consultation Notes &amp; History</span>
+              <span>Allergies &amp; Clinical Diagnosis</span>
             </h4>
             {notesToPrint.map((n, idx) => (
               <div key={n.id || idx} style={{ fontSize: '0.825rem', marginBottom: 8, lineHeight: 1.45 }}>
-                {n.chiefComplaints && (
-                  <div style={{ marginBottom: 4 }}>
-                    <strong style={{ color: '#0f172a' }}>Chief Complaints: </strong>
-                    <span style={{ color: '#334155' }}>{n.chiefComplaints}</span>
+                {/* Drug Allergies */}
+                <div style={{ marginBottom: 6, padding: '4px 8px', background: n.allergicHistory ? '#fef2f2' : '#f8fafc', borderRadius: 4, borderLeft: `3px solid ${n.allergicHistory ? '#dc2626' : '#10b981'}` }}>
+                  <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: n.allergicHistory ? '#b91c1c' : '#047857' }}>
+                    Drug Allergies:
                   </div>
-                )}
-                {n.clinicalAssessment && (
-                  <div style={{ marginBottom: 4 }}>
-                    <strong style={{ color: '#0f172a' }}>Assessment: </strong>
-                    <span style={{ color: '#334155' }}>{n.clinicalAssessment}</span>
+                  <div style={{ fontWeight: 600, color: n.allergicHistory ? '#dc2626' : '#334155' }}>
+                    {n.allergicHistory || 'No Known Drug Allergies'}
                   </div>
-                )}
-                {n.allergicHistory && (
-                  <div style={{ color: '#dc2626', fontWeight: 600 }}>
-                    <strong>Known Allergies: </strong>
-                    <span>{n.allergicHistory}</span>
+                </div>
+
+                {/* Food Allergies */}
+                <div style={{ marginBottom: 6, padding: '4px 8px', background: '#f8fafc', borderRadius: 4, borderLeft: '3px solid #64748b' }}>
+                  <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569' }}>
+                    Food Allergies:
+                  </div>
+                  <div style={{ color: '#334155' }}>
+                    No Known Food Allergies
+                  </div>
+                </div>
+
+                {/* Clinical Diagnosis / Assessment */}
+                {(n.clinicalAssessment || patient.impressionAdvice?.impression) && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', marginBottom: 3 }}>
+                      Diagnosis:
+                    </div>
+                    <div style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'pre-line', lineHeight: 1.5, background: '#f8fafc', padding: '6px 10px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                      {n.clinicalAssessment || patient.impressionAdvice?.impression}
+                    </div>
                   </div>
                 )}
               </div>
@@ -232,33 +245,57 @@ export const PrescriptionSectionRenderer = ({
         if (!examsToPrint || examsToPrint.length === 0) return null;
         return (
           <div style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 3, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>🩺</span>
-              <span>Recorded Vitals &amp; Examination</span>
+              <span>Vital Signs &amp; Complaints</span>
             </h4>
             {examsToPrint.map((e, idx) => (
               <div key={e.id || idx} style={{ fontSize: '0.825rem' }}>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: 6, marginBottom: 8 }}>
-                  {e.vitals?.bpSystolic && <span><strong>BP:</strong> {e.vitals.bpSystolic}/{e.vitals.bpDiastolic || '80'} mmHg</span>}
-                  {e.vitals?.pulse && <span><strong>Pulse:</strong> {e.vitals.pulse} bpm</span>}
-                  {e.vitals?.temperature && <span><strong>Temp:</strong> {e.vitals.temperature} °C</span>}
-                  {e.vitals?.spO2 && <span><strong>SpO₂:</strong> {e.vitals.spO2}%</span>}
-                  {e.vitals?.weight && <span><strong>Weight:</strong> {e.vitals.weight} kg</span>}
-                  {e.vitals?.bloodSugar && <span><strong>RBS:</strong> {e.vitals.bloodSugar} mg/dL</span>}
+                {/* Vital Signs */}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
+                    Vital Signs:
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px 10px', flexWrap: 'wrap', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 10px', borderRadius: 4, fontSize: '0.8rem' }}>
+                    {e.vitals?.bpSystolic && <span><strong>BP:</strong> {e.vitals.bpSystolic}/{e.vitals.bpDiastolic || '80'} mmHg</span>}
+                    {e.vitals?.pulse && <span><strong>Pulse:</strong> {e.vitals.pulse} /min</span>}
+                    {e.vitals?.temperature && <span><strong>Temp:</strong> {e.vitals.temperature} °F</span>}
+                    {e.vitals?.spO2 && <span><strong>SpO₂:</strong> {e.vitals.spO2}%</span>}
+                    {e.vitals?.weight && <span><strong>Weight:</strong> {e.vitals.weight} kg</span>}
+                    {e.vitals?.bloodSugar && <span><strong>BS:</strong> {e.vitals.bloodSugar} mg/dL</span>}
+                  </div>
                 </div>
 
+                {/* Complaints */}
+                {notesToPrint?.[0]?.chiefComplaints && (
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
+                      Complaints:
+                    </div>
+                    <div style={{ color: '#1e293b', fontSize: '0.8rem', lineHeight: 1.4, background: '#f8fafc', padding: '4px 8px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                      {notesToPrint[0].chiefComplaints}
+                    </div>
+                  </div>
+                )}
+
+                {/* Clinical Details */}
                 {e.findings && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
-                    {Object.entries(e.findings).map(([key, val]) => {
-                      if (!val || !val.trim()) return null;
-                      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                      return (
-                        <div key={key} style={{ fontSize: '0.8rem', color: '#334155' }}>
-                          <strong style={{ color: '#475569' }}>{label}: </strong>
-                          <span>{val}</span>
-                        </div>
-                      );
-                    })}
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
+                      Clinical Details:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2 }}>
+                      {Object.entries(e.findings).map(([key, val]) => {
+                        if (!val || !val.trim()) return null;
+                        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                        return (
+                          <div key={key} style={{ fontSize: '0.775rem', color: '#334155' }}>
+                            <strong style={{ color: '#475569' }}>{label}: </strong>
+                            <span>{val}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -456,11 +493,49 @@ export const PrescriptionSectionRenderer = ({
               </div>
             )}
 
-            {patient.impressionAdvice.followUpDate && (
-              <div style={{ fontSize: '0.825rem', color: '#0284c7', fontWeight: 700, marginTop: 4 }}>
-                🕒 Next Follow-up: {patient.impressionAdvice.followUpDate}
+            {/* Reference Safety Warning Banner */}
+            <div
+              style={{
+                marginTop: 12,
+                padding: '8px 14px',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.825rem',
+                  color: '#b91c1c',
+                  fontWeight: 700,
+                  fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif",
+                  direction: 'rtl'
+                }}
+              >
+                ہدایات: براہ کرم مشورہ کے بغیر دوائی بند، کم یا تبدیل نہ کریں۔
               </div>
-            )}
+
+              {patient.impressionAdvice.followUpDate ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
+                  <span>Make an appointment before visit, Follow-up:</span>
+                  <span style={{ color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: 4 }}>
+                    {patient.impressionAdvice.followUpDate}
+                  </span>
+                  <span style={{ fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif", color: '#0284c7' }}>
+                    چیک اپ
+                  </span>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  Consult attending physician before altering dosage schedule.
+                </div>
+              )}
+            </div>
           </div>
         );
 

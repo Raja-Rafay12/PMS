@@ -96,6 +96,21 @@ export const DEFAULT_PRESCRIPTION_SECTIONS = [
 
 export const PRESCRIPTION_PRESETS = [
   {
+    id: 'preset_1',
+    label: '⭐ Preset 1',
+    description: 'Demographics, Allergies & Diagnosis Left (45%), Vitals & Complaints Right (55%), Full-Width ℞, Safety Note Footer',
+    generate: () => [
+      { id: 'header', name: 'Clinical Letterhead Header', icon: '🏥', description: 'Doctor credentials, hospital branding & practice schedule strip', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'demographics', name: 'Patient Demographics Bar', icon: '👤', description: 'Patient Name, Age/Gender, MRN/Phone, Blood Group & Date', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'clinical_notes', name: 'Allergies & Clinical Diagnosis', icon: '📝', description: 'Drug/Food Allergies & Diagnosis (Left Column)', enabled: true, layout: 'horizontal', align: 'left' },
+      { id: 'vitals_exam', name: 'Vitals, Complaints & History', icon: '🩺', description: 'Vital signs, chief complaints & clinical details (Right Column)', enabled: true, layout: 'horizontal', align: 'right' },
+      { id: 'rx_medications', name: '℞ Prescriptions (Medications Table)', icon: '💊', description: 'Active medications, dosage, frequency, duration & instructions', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'impression_advice', name: 'Clinical Impression & Follow-up', icon: '💡', description: 'Doctor diagnostic impression and follow-up guidance', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'lab_reports', name: 'Laboratory Investigations', icon: '🧪', description: 'Diagnostic lab tests ordered and investigation findings', enabled: false, layout: 'vertical', align: 'full' },
+      { id: 'footer_signature', name: 'Authorization & Signature Block', icon: '✍️', description: 'Emergency advice note and authorized physician signature', enabled: true, layout: 'vertical', align: 'full' }
+    ]
+  },
+  {
     id: 'classic_split',
     label: '📑 Classic 2-Column Split',
     description: 'Vitals & Notes on Left Column (40%), ℞ Prescriptions on Right Column (60%)',
