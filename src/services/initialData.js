@@ -117,7 +117,8 @@ export const initialPatients = [
     ],
     impressionAdvice: {
       impression: "Subacute post-viral bronchial hyper-reactivity / mild tracheobronchitis.\nDifferential: Cough-variant asthma excluded for now.",
-      advice: "1. Steam inhalation twice daily for 10 minutes.\n2. Avoid chilled beverages, cold air direct blast, and active smoke.\n3. Maintain adequate warm hydration (lukewarm water, warm soups).\n4. Return for follow-up evaluation after 5 days if cough or nocturnal spasms persist."
+      advice: "1. Steam inhalation twice daily for 10 minutes.\n2. Avoid chilled beverages, cold air direct blast, and active smoke.\n3. Maintain adequate warm hydration (lukewarm water, warm soups).\n4. Return for follow-up evaluation after 5 days if cough or nocturnal spasms persist.",
+      followUpDate: "16 Oct 2026"
     },
     personalNotes: "**Doctor's Private Perception:**\nPatient is cooperative and well-informed. Expressed high anxiety about nocturnal coughing spells interfering with late-night software shifts. Reassured that auscultation is completely clear and no signs of chronic bronchiectasis or bacterial pneumonia. Suggested warm tea during shifts."
   },

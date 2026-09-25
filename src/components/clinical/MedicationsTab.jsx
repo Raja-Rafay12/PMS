@@ -129,7 +129,17 @@ export const MedicationsTab = () => {
   };
 
   const doseTypeOptions = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Drops', 'Inhaler', 'Sachet'];
-  const frequencyOptions = ['Once daily', 'Twice daily', '3 times daily', '4 times daily', 'Every 6 hours', 'As needed (PRN)', 'At bedtime'];
+  const frequencyOptions = [
+    'Once in morning',
+    'Once in night',
+    'Once daily',
+    'Twice daily',
+    '3 times daily',
+    '4 times daily',
+    'Every 6 hours',
+    'As needed (PRN)',
+    'At bedtime'
+  ];
   const routeOptions = ['Oral', 'IV', 'IM', 'Topical', 'Sublingual', 'Inhalation', 'Eye/Ear Drop'];
 
   if (isAdding) {

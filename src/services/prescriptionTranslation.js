@@ -28,10 +28,16 @@ export const translateDoseType = (doseType) => {
 export const translateFrequency = (frequency) => {
   if (!frequency) return '';
   const f = frequency.trim().toLowerCase();
-  if (f.includes('twice daily') || f.includes('bd') || f.includes('bid') || f.includes('2 times')) {
+  if (f.includes('morning') || f.includes('صبح')) {
+    return 'روزانہ صبح کے وقت (1-0-0)';
+  }
+  if (f.includes('night') || f.includes('bedtime') || f.includes('hs') || f.includes('رات')) {
+    return 'روزانہ رات کو سوتے وقت (0-0-1)';
+  }
+  if (f.includes('twice daily') || f.includes('bd') || f.includes('bid') || f.includes('2 times') || f.includes('1-0-1')) {
     return 'دن میں دو بار (صبح اور شام)';
   }
-  if (f.includes('3 times daily') || f.includes('tds') || f.includes('tid') || f.includes('thrice')) {
+  if (f.includes('3 times daily') || f.includes('tds') || f.includes('tid') || f.includes('thrice') || f.includes('1-1-1')) {
     return 'دن میں تین بار (صبح، دوپہر، شام)';
   }
   if (f.includes('4 times daily') || f.includes('qid') || f.includes('4 times')) {
@@ -43,13 +49,9 @@ export const translateFrequency = (frequency) => {
   if (f.includes('every 6 hours')) return 'ہر ۶ گھنٹے بعد';
   if (f.includes('every 8 hours')) return 'ہر ۸ گھنٹے بعد';
   if (f.includes('every 12 hours')) return 'ہر ۱۲ گھنٹے بعد';
-  if (f.includes('bedtime') || f.includes('hs') || f.includes('at night')) {
-    return 'رات کو سوتے وقت';
-  }
   if (f.includes('as needed') || f.includes('prn') || f.includes('sos')) {
     return 'بوقتِ ضرورت (تکلیف یا درد پر)';
   }
-  if (f.includes('morning')) return 'صبح کے وقت';
   if (f.includes('evening')) return 'شام کے وقت';
   return 'ڈاکٹر کے بتائے گئے اوقات پر';
 };

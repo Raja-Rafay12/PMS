@@ -33,12 +33,40 @@ import {
 } from '../../services/prescriptionTranslation';
 
 export const PrintSummaryView = () => {
-  const { activePatient, clinicConfig, navigateTo, showToast } = usePatients();
+  const { activePatient, clinicConfig, navigateTo, showToast, updateImpressionAdvice } = usePatients();
   const { currentUser, doctors = [], doctorLetterheads = {}, updateDoctorLetterhead } = useAuth();
   const isDoctorUser = currentUser?.role === 'doctor';
 
   // Toggle for Doctor Layout & Letterhead Customizer Modal
   const [showLayoutModal, setShowLayoutModal] = useState(false);
+
+  // Next Follow-up Date state (synced with activePatient.impressionAdvice.followUpDate)
+  const [followUpDate, setFollowUpDate] = useState(() => {
+    return activePatient?.impressionAdvice?.followUpDate || '';
+  });
+
+  useEffect(() => {
+    if (activePatient?.impressionAdvice?.followUpDate) {
+      setFollowUpDate(activePatient.impressionAdvice.followUpDate);
+    }
+  }, [activePatient]);
+
+  const handleUpdateFollowUpDate = (newDate) => {
+    setFollowUpDate(newDate);
+    if (activePatient?.id && updateImpressionAdvice) {
+      updateImpressionAdvice(activePatient.id, {
+        ...(activePatient.impressionAdvice || {}),
+        followUpDate: newDate
+      });
+    }
+  };
+
+  const handleQuickFollowUp = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const formatted = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    handleUpdateFollowUpDate(formatted);
+  };
 
   // Selected physician for letterhead branding (strictly locked to logged-in doctor, or first doctor for admin)
   const [selectedDoctorId, setSelectedDoctorId] = useState(() => {
@@ -535,7 +563,7 @@ export const PrintSummaryView = () => {
           </div>
 
           {/* Impression & Advice */}
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
               Impression &amp; Advice
             </div>
@@ -547,6 +575,68 @@ export const PrintSummaryView = () => {
               />
               <span>Include doctor's clinical instructions</span>
             </label>
+          </div>
+
+          {/* Next Follow-up Date Control */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Calendar size={14} color="var(--brand-cyan)" />
+              <span>Next Follow-up Date (چیک اپ)</span>
+            </div>
+
+            <input
+              type="text"
+              className="modern-input"
+              value={followUpDate}
+              onChange={(e) => handleUpdateFollowUpDate(e.target.value)}
+              placeholder="e.g. 16 Oct 2026 or In 2 weeks"
+              style={{ fontSize: '0.825rem', marginBottom: 8 }}
+            />
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                onClick={() => handleQuickFollowUp(3)}
+              >
+                +3 Days
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                onClick={() => handleQuickFollowUp(7)}
+              >
+                +1 Week
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                onClick={() => handleQuickFollowUp(14)}
+              >
+                +2 Weeks
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                onClick={() => handleQuickFollowUp(30)}
+              >
+                +1 Month
+              </button>
+              {followUpDate && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#ef4444' }}
+                  onClick={() => handleUpdateFollowUpDate('')}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Clinic Brand Reminder */}
@@ -619,6 +709,7 @@ export const PrintSummaryView = () => {
                 includeImpression,
                 currentDateFormatted,
                 formatAgeDisplay,
+                followUpDate: followUpDate || activePatient?.impressionAdvice?.followUpDate || '',
                 footerNote: effectiveLetterhead.footerNote || '',
                 doctorName: effectiveLetterhead.doctorName || ''
               }}

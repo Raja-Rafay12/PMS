@@ -112,6 +112,10 @@ export const PrescriptionSectionRenderer = ({
   const currentDateFormatted = patientData.currentDateFormatted || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const footerNote = patientData.footerNote || headerData.footerNote || 'Bring previous prescription and diagnostic reports on follow-up.';
   const doctorName = patientData.doctorName || headerData.doctorName || 'Attending Physician';
+  const followUpDateToDisplay = patientData.followUpDate ||
+    patient.impressionAdvice?.followUpDate ||
+    patient.followUpDate ||
+    '';
 
   const formatAge = (p) => {
     if (patientData.formatAgeDisplay) return patientData.formatAgeDisplay(p);
@@ -520,19 +524,15 @@ export const PrescriptionSectionRenderer = ({
                 ہدایات: براہ کرم مشورہ کے بغیر دوائی بند، کم یا تبدیل نہ کریں۔
               </div>
 
-              {patient.impressionAdvice.followUpDate ? (
+              {followUpDateToDisplay && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
-                  <span>Make an appointment before visit, Follow-up:</span>
-                  <span style={{ color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: 4 }}>
-                    {patient.impressionAdvice.followUpDate}
+                  <span>Next Follow-up:</span>
+                  <span style={{ color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: 4, fontWeight: 800, border: '1px solid #bae6fd' }}>
+                    {followUpDateToDisplay}
                   </span>
-                  <span style={{ fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif", color: '#0284c7' }}>
+                  <span style={{ fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif", color: '#0284c7', fontWeight: 700 }}>
                     چیک اپ
                   </span>
-                </div>
-              ) : (
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  Consult attending physician before altering dosage schedule.
                 </div>
               )}
             </div>
