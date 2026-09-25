@@ -4,7 +4,9 @@ import { usePatients } from '../../context/PatientContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { QualificationsBuilder } from '../common/QualificationsBuilder';
 import { LetterheadLayoutBuilder, DEFAULT_HEADER_SECTIONS } from './LetterheadLayoutBuilder';
+import { PrescriptionLayoutBuilder, DEFAULT_PRESCRIPTION_SECTIONS } from './PrescriptionLayoutBuilder';
 import { HeaderSectionRenderer } from '../common/HeaderSectionRenderer';
+import { PrescriptionSectionRenderer } from '../common/PrescriptionSectionRenderer';
 import {
   ShieldCheck,
   Users,
@@ -107,7 +109,10 @@ export const AdminDashboard = () => {
   // Scope switcher for Letterhead Settings: 'clinic' or doctor ID
   const [selectedLetterheadScope, setSelectedLetterheadScope] = useState('clinic');
 
-    // Doctor-specific letterhead form state (supports multiple practice hospitals/chambers)
+  // Tab switcher for layout customizer: 'prescription' (Rx & clinical body) vs 'header' (letterhead header)
+  const [layoutSectionTab, setLayoutSectionTab] = useState('prescription');
+
+  // Doctor-specific letterhead form state (supports multiple practice hospitals/chambers)
   const [docLhForm, setDocLhForm] = useState({
     enabled: true,
     doctorName: '',
@@ -121,6 +126,7 @@ export const AdminDashboard = () => {
     dividerStyle: 'solid',
     schedulePosition: 'banner',
     headerSections: DEFAULT_HEADER_SECTIONS,
+    prescriptionSections: DEFAULT_PRESCRIPTION_SECTIONS,
     locations: [
       {
         id: 'loc-1',
@@ -203,6 +209,9 @@ export const AdminDashboard = () => {
           dividerStyle: savedLh.dividerStyle || 'solid',
           schedulePosition: savedLh.schedulePosition || 'banner',
           headerSections: initialSections,
+          prescriptionSections: (Array.isArray(savedLh.prescriptionSections) && savedLh.prescriptionSections.length > 0)
+            ? savedLh.prescriptionSections
+            : DEFAULT_PRESCRIPTION_SECTIONS,
           locations: initialLocations,
           clinicName: initialLocations[0]?.hospitalName || savedLh.clinicName || '',
           address: initialLocations[0]?.department || savedLh.address || '',
@@ -447,6 +456,7 @@ export const AdminDashboard = () => {
       dividerStyle: 'solid',
       schedulePosition: 'banner',
       headerSections: DEFAULT_HEADER_SECTIONS,
+      prescriptionSections: DEFAULT_PRESCRIPTION_SECTIONS,
       locations: [
         {
           id: 'loc-1',
@@ -1227,11 +1237,41 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Section 3: Interactive Drag-to-Move Layout Builder */}
-                <LetterheadLayoutBuilder
-                  sections={docLhForm.headerSections}
-                  onChange={(newSections) => setDocLhForm({ ...docLhForm, headerSections: newSections })}
-                />
+                {/* Section 3: Interactive Drag-to-Move Layout Builder (Prescriptions & Header) */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                    <button
+                      type="button"
+                      className={`btn ${layoutSectionTab === 'prescription' ? 'btn-cyan' : 'btn-secondary'}`}
+                      onClick={() => setLayoutSectionTab('prescription')}
+                      style={{ fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+                    >
+                      <FileText size={15} />
+                      <span>📋 Prescription Body &amp; Rx Layout</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${layoutSectionTab === 'header' ? 'btn-cyan' : 'btn-secondary'}`}
+                      onClick={() => setLayoutSectionTab('header')}
+                      style={{ fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+                    >
+                      <Building2 size={15} />
+                      <span>🏥 Header Branding Layout</span>
+                    </button>
+                  </div>
+
+                  {layoutSectionTab === 'prescription' ? (
+                    <PrescriptionLayoutBuilder
+                      sections={docLhForm.prescriptionSections}
+                      onChange={(newSections) => setDocLhForm({ ...docLhForm, prescriptionSections: newSections })}
+                    />
+                  ) : (
+                    <LetterheadLayoutBuilder
+                      sections={docLhForm.headerSections}
+                      onChange={(newSections) => setDocLhForm({ ...docLhForm, headerSections: newSections })}
+                    />
+                  )}
+                </div>
 
                 {/* Section 4: Prescription Footer & Contact */}
                 <div style={{ background: 'var(--bg-card)', padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border-subtle)', marginBottom: 20 }}>
@@ -1296,36 +1336,18 @@ export const AdminDashboard = () => {
                     )}
                   </div>
 
-                  <div style={{ background: '#ffffff', padding: '24px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
-                    {/* Header with Dynamic Layout Architecture */}
-                    {/* Header rendered dynamically with drag-to-move sections */}
-                    <HeaderSectionRenderer
-                      sections={docLhForm.headerSections}
-                      data={{
-                        ...docLhForm,
-                        pmcNumber: docLhForm.pmcNumber
+                  <div style={{ background: '#ffffff', padding: '24px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)', minHeight: 600 }}>
+                    {/* Realistic Live Prescription Sheet (Header, Demographics, Rx, Notes, Vitals, Signature) */}
+                    <PrescriptionSectionRenderer
+                      sections={docLhForm.prescriptionSections}
+                      headerSections={docLhForm.headerSections}
+                      headerData={docLhForm}
+                      patientData={{
+                        footerNote: docLhForm.footerNote,
+                        doctorName: docLhForm.doctorName
                       }}
                       isPreview={true}
                     />
-
-                    {/* Simulated Body */}
-                    <div style={{ border: '1px dashed #e2e8f0', borderRadius: 6, padding: '20px 14px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', marginBottom: 16 }}>
-                      <span style={{ fontSize: '1.2rem', fontFamily: 'serif', fontWeight: 900, color: '#cbd5e1', marginRight: 8 }}>&#8478;</span>
-                      Prescription Items, Clinical Findings &amp; Medications print here
-                    </div>
-
-                    {/* Simulated Footer */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', maxWidth: 220, fontStyle: 'italic' }}>
-                        {docLhForm.footerNote || 'Bring previous prescription on follow-up.'}
-                      </div>
-                      <div style={{ textAlign: 'center', borderTop: '1px solid #0f172a', paddingTop: 4, minWidth: 140 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
-                          {docLhForm.doctorName || 'Dr. Zain Safdar'}
-                        </div>
-                        <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Authorized Signature</div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

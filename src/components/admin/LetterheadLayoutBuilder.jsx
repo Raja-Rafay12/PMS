@@ -365,14 +365,14 @@ export const LetterheadLayoutBuilder = ({ sections = DEFAULT_HEADER_SECTIONS, on
 
               {/* Card Body: Orientation & Alignment Controls (when enabled) */}
               {section.enabled && (
-                <div style={{ background: 'var(--bg-page)', borderRadius: 6, padding: '10px 12px', border: '1px solid var(--border-subtle)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, alignItems: 'center' }}>
+                <div style={{ background: 'var(--bg-page)', borderRadius: 6, padding: '10px 12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {/* Control 1: Orientation (Horizontal vs Vertical) */}
                   {section.id !== 'divider_line' && (
                     <div>
                       <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 5 }}>
                         Placement Mode
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         <button
                           type="button"
                           className={`layout-toggle-btn ${section.layout === 'horizontal' ? 'active' : ''}`}
@@ -402,7 +402,7 @@ export const LetterheadLayoutBuilder = ({ sections = DEFAULT_HEADER_SECTIONS, on
                       <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 5 }}>
                         {section.layout === 'horizontal' ? 'Side in Row' : 'Row Text Alignment'}
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         <button
                           type="button"
                           className={`layout-toggle-btn ${section.align === 'left' ? 'active' : ''}`}
