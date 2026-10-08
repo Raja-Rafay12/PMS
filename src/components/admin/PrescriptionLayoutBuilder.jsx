@@ -163,7 +163,14 @@ export const PRESCRIPTION_PRESETS = [
   }
 ];
 
-export const PrescriptionLayoutBuilder = ({ sections = DEFAULT_PRESCRIPTION_SECTIONS, onChange }) => {
+export const PrescriptionLayoutBuilder = ({
+  sections = DEFAULT_PRESCRIPTION_SECTIONS,
+  onChange,
+  fontSizeScale = 'normal',
+  columnSplit = 'rx-priority',
+  pageSpacing = 'normal',
+  onLayoutSettingsChange
+}) => {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
@@ -244,7 +251,7 @@ export const PrescriptionLayoutBuilder = ({ sections = DEFAULT_PRESCRIPTION_SECT
             Full Prescription &amp; Clinical Sections Layout Builder
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-            Drag and reorder any section on the prescription (Rx Medications, Clinical Notes, Vitals, Demographics, Footer). Adjust horizontal/vertical placement and visibility to match the doctor's custom workflow.
+            Control section order, visibility, column width split, and print font scaling to match the doctor's exact workflow.
           </div>
         </div>
 
@@ -258,6 +265,128 @@ export const PrescriptionLayoutBuilder = ({ sections = DEFAULT_PRESCRIPTION_SECT
           <RotateCcw size={12} />
           <span>Reset Layout</span>
         </button>
+      </div>
+
+      {/* Global Page Typography & Column Width Controls */}
+      <div
+        style={{
+          background: 'var(--bg-page)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 8,
+          padding: '12px 14px',
+          marginBottom: 16,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 14
+        }}
+      >
+        {/* 1. Font Size Scale */}
+        <div>
+          <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>🔤</span>
+            <span>Print Font Size &amp; Density:</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { id: 'compact', label: 'Compact (85%)', desc: 'Fits 10+ meds on 1 page' },
+              { id: 'normal', label: 'Normal (100%)', desc: 'Standard balanced' },
+              { id: 'large', label: 'Large (115%)', desc: 'High legibility' }
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => onLayoutSettingsChange && onLayoutSettingsChange({ fontSizeScale: f.id })}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  border: fontSizeScale === f.id ? '1.5px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                  background: fontSizeScale === f.id ? 'var(--brand-cyan-light)' : '#ffffff',
+                  color: fontSizeScale === f.id ? 'var(--brand-cyan)' : 'var(--text-secondary)',
+                  fontSize: '0.725rem',
+                  fontWeight: fontSizeScale === f.id ? 800 : 600,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+                title={f.desc}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. Side-by-Side Column Width Split */}
+        <div>
+          <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>↔️</span>
+            <span>Side-by-Side Column Width Split:</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { id: 'rx-priority', label: '58% / 39%', title: 'Rx Priority (Recommended)' },
+              { id: 'balanced', label: '50% / 50%', title: 'Equal Balance' },
+              { id: 'left-wide', label: '65% / 32%', title: 'Wide Left' },
+              { id: 'right-wide', label: '35% / 62%', title: 'Wide Right' }
+            ].map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onLayoutSettingsChange && onLayoutSettingsChange({ columnSplit: s.id })}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  border: columnSplit === s.id ? '1.5px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                  background: columnSplit === s.id ? 'var(--brand-cyan-light)' : '#ffffff',
+                  color: columnSplit === s.id ? 'var(--brand-cyan)' : 'var(--text-secondary)',
+                  fontSize: '0.725rem',
+                  fontWeight: columnSplit === s.id ? 800 : 600,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+                title={s.title}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Page Spacing */}
+        <div>
+          <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>📏</span>
+            <span>Section Spacing / Margins:</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { id: 'compact', label: 'Tight' },
+              { id: 'normal', label: 'Standard' },
+              { id: 'spacious', label: 'Spacious' }
+            ].map((sp) => (
+              <button
+                key={sp.id}
+                type="button"
+                onClick={() => onLayoutSettingsChange && onLayoutSettingsChange({ pageSpacing: sp.id })}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  border: pageSpacing === sp.id ? '1.5px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                  background: pageSpacing === sp.id ? 'var(--brand-cyan-light)' : '#ffffff',
+                  color: pageSpacing === sp.id ? 'var(--brand-cyan)' : 'var(--text-secondary)',
+                  fontSize: '0.725rem',
+                  fontWeight: pageSpacing === sp.id ? 800 : 600,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                {sp.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 1-Click Prescription Presets */}
@@ -461,6 +590,37 @@ export const PrescriptionLayoutBuilder = ({ sections = DEFAULT_PRESCRIPTION_SECT
                       <span>↔ Right Column (Side-by-Side)</span>
                     </button>
                   </div>
+
+                  {/* Section-Specific Custom Width if in horizontal mode */}
+                  {section.layout === 'horizontal' && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.675rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        Section Width:
+                      </span>
+                      {['auto', '38%', '48%', '58%', '65%'].map((w) => {
+                        const isCurrent = (section.customWidth || 'auto') === w;
+                        return (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => updateSection(section.id, { customWidth: w === 'auto' ? undefined : w })}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              border: isCurrent ? '1.5px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                              background: isCurrent ? 'var(--brand-cyan-light)' : '#ffffff',
+                              color: isCurrent ? 'var(--brand-cyan)' : 'var(--text-secondary)',
+                              fontSize: '0.675rem',
+                              fontWeight: isCurrent ? 800 : 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {w === 'auto' ? 'Default Split' : w}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

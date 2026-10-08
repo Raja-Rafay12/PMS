@@ -130,6 +130,13 @@ export const PrescriptionSectionRenderer = ({
     patient.bloodGroup.toLowerCase() !== 'n/a'
   );
 
+  const fontSizeScale = headerData.fontSizeScale || 'normal';
+  const columnSplit = headerData.columnSplit || 'rx-priority';
+  const pageSpacing = headerData.pageSpacing || 'normal';
+
+  const fontMultiplier = fontSizeScale === 'compact' ? 0.88 : (fontSizeScale === 'large' ? 1.15 : 1.0);
+  const spacingMultiplier = pageSpacing === 'compact' ? 0.75 : (pageSpacing === 'spacious' ? 1.25 : 1.0);
+
   // Active / enabled sections
   const enabledSections = Array.isArray(sections) && sections.length > 0
     ? sections.filter(s => s.enabled !== false)
@@ -610,7 +617,7 @@ export const PrescriptionSectionRenderer = ({
   }
 
   return (
-    <div style={{ width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', boxSizing: 'border-box', fontSize: `${fontMultiplier * 100}%` }}>
       {rows.map((row, rIdx) => {
         if (row.type === 'columns') {
           const leftItem = row.items.find(i => i.align === 'left') || row.items[0];
@@ -624,12 +631,32 @@ export const PrescriptionSectionRenderer = ({
           let leftWidth = '48.5%';
           let rightWidth = '48.5%';
 
-          if (isLeftMain && !isRightMain) {
-            leftWidth = '58%';
-            rightWidth = '39%';
-          } else if (isRightMain && !isLeftMain) {
-            leftWidth = '39%';
-            rightWidth = '58%';
+          if (leftItem.customWidth) {
+            leftWidth = leftItem.customWidth;
+            const numericLeft = parseFloat(leftItem.customWidth) || 50;
+            rightWidth = `${Math.max(100 - numericLeft - 3, 20)}%`;
+          } else if (rightItem.customWidth) {
+            rightWidth = rightItem.customWidth;
+            const numericRight = parseFloat(rightItem.customWidth) || 50;
+            leftWidth = `${Math.max(100 - numericRight - 3, 20)}%`;
+          } else if (columnSplit === 'balanced') {
+            leftWidth = '48.5%';
+            rightWidth = '48.5%';
+          } else if (columnSplit === 'left-wide') {
+            leftWidth = '64%';
+            rightWidth = '33%';
+          } else if (columnSplit === 'right-wide') {
+            leftWidth = '33%';
+            rightWidth = '64%';
+          } else {
+            // 'rx-priority' default:
+            if (isLeftMain && !isRightMain) {
+              leftWidth = '58%';
+              rightWidth = '39%';
+            } else if (isRightMain && !isLeftMain) {
+              leftWidth = '39%';
+              rightWidth = '58%';
+            }
           }
 
           return (
@@ -641,7 +668,7 @@ export const PrescriptionSectionRenderer = ({
                 alignItems: 'flex-start',
                 width: '100%',
                 gap: 16,
-                marginBottom: 12,
+                marginBottom: Math.round(12 * spacingMultiplier),
                 boxSizing: 'border-box'
               }}
             >
@@ -677,7 +704,7 @@ export const PrescriptionSectionRenderer = ({
 
         const singleItem = row.items[0];
         return (
-          <div key={`p-row-${rIdx}`} style={{ width: '100%', boxSizing: 'border-box' }}>
+          <div key={`p-row-${rIdx}`} style={{ width: '100%', boxSizing: 'border-box', marginBottom: Math.round(10 * spacingMultiplier) }}>
             {renderSectionBlock(singleItem, false)}
           </div>
         );

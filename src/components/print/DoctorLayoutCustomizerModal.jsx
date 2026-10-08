@@ -49,6 +49,9 @@ export const DoctorLayoutCustomizerModal = ({
       email: currentLetterhead.email || '',
       consultationHours: currentLetterhead.consultationHours || '',
       footerNote: currentLetterhead.footerNote || 'Bring previous prescription and diagnostic reports on follow-up.',
+      fontSizeScale: currentLetterhead.fontSizeScale || 'normal',
+      columnSplit: currentLetterhead.columnSplit || 'rx-priority',
+      pageSpacing: currentLetterhead.pageSpacing || 'normal',
       headerSections: (Array.isArray(currentLetterhead.headerSections) && currentLetterhead.headerSections.length > 0)
         ? currentLetterhead.headerSections
         : DEFAULT_HEADER_SECTIONS,
@@ -317,6 +320,10 @@ export const DoctorLayoutCustomizerModal = ({
               {/* Drag-and-Drop Prescription Layout Builder */}
               <PrescriptionLayoutBuilder
                 sections={formState.prescriptionSections}
+                fontSizeScale={formState.fontSizeScale}
+                columnSplit={formState.columnSplit}
+                pageSpacing={formState.pageSpacing}
+                onLayoutSettingsChange={(newSettings) => setFormState(prev => ({ ...prev, ...newSettings }))}
                 onChange={(newSections) => setFormState(prev => ({ ...prev, prescriptionSections: newSections }))}
               />
             </div>

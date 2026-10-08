@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { usePatients } from '../../context/PatientContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import {
@@ -10,8 +10,26 @@ import {
   Clock,
   Calendar,
   Sparkles,
-  Info
+  Info,
+  Star,
+  Check,
+  Search,
+  BookmarkCheck,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
+import {
+  searchMedications,
+  saveCustomMedication,
+  getFavoriteMedications,
+  toggleFavoriteMedication,
+  getAllDiseaseBundles
+} from '../../services/formularyService';
+import {
+  CLINICAL_SPECIALTIES,
+  getSuggestedMedicationsForDiagnosis,
+  getSuggestedBundlesForDiagnosis
+} from '../../data/clinicalFormulary';
 
 export const MedicationsTab = () => {
   const {
@@ -25,6 +43,11 @@ export const MedicationsTab = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingMedId, setEditingMedId] = useState(null);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [selectedSpecialty, setSelectedSpecialty] = useState('cardiology');
+  const [searchQueryMap, setSearchQueryMap] = useState({});
+  const [activeDropdownIndex, setActiveDropdownIndex] = useState(null);
+  const [autoFilledIndices, setAutoFilledIndices] = useState({});
+  const [showBundlesModal, setShowBundlesModal] = useState(false);
 
   const getTodayString = () => new Date().toISOString().slice(0, 10);
 
@@ -32,30 +55,50 @@ export const MedicationsTab = () => {
     name: '',
     dose: '',
     doseType: 'Tablet',
-    frequency: 'Twice daily',
+    frequency: 'Once in morning',
     route: 'Oral',
     dateFrom: getTodayString(),
-    days: 5,
+    days: 30,
     comment: ''
   };
 
   const [medsList, setMedsList] = useState([defaultSingleMed]);
 
-  const quickDrugPresets = [
-    { name: 'Panadol (Paracetamol)', dose: '500 mg', doseType: 'Tablet', frequency: '3 times daily', route: 'Oral', days: 3, comment: 'After meals for pain or fever' },
-    { name: 'Amoxicillin', dose: '500 mg', doseType: 'Capsule', frequency: '3 times daily', route: 'Oral', days: 5, comment: 'Complete full course with water' },
-    { name: 'Augmentin (Co-Amoxiclav)', dose: '625 mg', doseType: 'Tablet', frequency: 'Twice daily', route: 'Oral', days: 5, comment: 'Take at start of meals' },
-    { name: 'Omeprazole (Risek)', dose: '20 mg', doseType: 'Capsule', frequency: 'Once daily', route: 'Oral', days: 14, comment: 'Take 30 mins before breakfast' },
-    { name: 'Acefyl Cough Syrup', dose: '10 ml', doseType: 'Syrup', frequency: '3 times daily', route: 'Oral', days: 5, comment: 'Shake well before use' },
-    { name: 'Cetirizine (Zyrtec)', dose: '10 mg', doseType: 'Tablet', frequency: 'Once daily', route: 'Oral', days: 7, comment: 'Take at bedtime' }
-  ];
-
   const medications = activePatient?.medications || [];
+
+  // Extract patient clinical assessment / chief complaints / diagnosis text
+  const patientDiagnosisText = useMemo(() => {
+    if (!activePatient) return '';
+    const note = activePatient.notes?.[0];
+    const assessment = note?.clinicalAssessment || '';
+    const complaints = note?.chiefComplaints || '';
+    const impression = activePatient.impressionAdvice?.impression || '';
+    return `${assessment} ${complaints} ${impression}`.trim();
+  }, [activePatient]);
+
+  // Diagnosis-aware suggested medications and bundles
+  const suggestedMedications = useMemo(() => {
+    return getSuggestedMedicationsForDiagnosis(patientDiagnosisText);
+  }, [patientDiagnosisText]);
+
+  const suggestedBundles = useMemo(() => {
+    return getSuggestedBundlesForDiagnosis(patientDiagnosisText);
+  }, [patientDiagnosisText]);
+
+  // Specialty quick drugs
+  const specialtyQuickDrugs = useMemo(() => {
+    if (selectedSpecialty === 'favorites') {
+      return getFavoriteMedications();
+    }
+    return searchMedications('', selectedSpecialty, 16);
+  }, [selectedSpecialty]);
 
   const handleStartAdd = () => {
     setMedsList([{ ...defaultSingleMed, dateFrom: getTodayString() }]);
     setEditingMedId(null);
     setIsAdding(true);
+    setActiveDropdownIndex(null);
+    setAutoFilledIndices({});
   };
 
   const handleStartEdit = (med) => {
@@ -63,35 +106,98 @@ export const MedicationsTab = () => {
       name: med.name || '',
       dose: med.dose || '',
       doseType: med.doseType || 'Tablet',
-      frequency: med.frequency || 'Twice daily',
+      frequency: med.frequency || 'Once daily',
       route: med.route || 'Oral',
       dateFrom: med.dateFrom || getTodayString(),
-      days: med.days || 5,
+      days: med.days || 30,
       comment: med.comment || ''
     }]);
     setEditingMedId(med.id);
     setIsAdding(true);
+    setActiveDropdownIndex(null);
+    setAutoFilledIndices({});
   };
 
   const handleAddField = () => {
     setMedsList(prev => [...prev, { ...defaultSingleMed, dateFrom: getTodayString() }]);
   };
 
-  const handleApplyPreset = (preset) => {
+  // One-click apply preset to active item (or append new)
+  const handleApplyPreset = (preset, targetIndex = null) => {
     setMedsList(prev => {
       const updated = [...prev];
-      updated[updated.length - 1] = {
-        ...preset,
+      const idx = targetIndex !== null ? targetIndex : updated.length - 1;
+
+      updated[idx] = {
+        name: preset.name,
+        dose: preset.dose || '',
+        doseType: preset.doseType || 'Tablet',
+        frequency: preset.frequency || 'Once daily',
+        route: preset.route || 'Oral',
+        days: preset.days || 30,
+        comment: preset.comment || '',
         dateFrom: getTodayString()
       };
       return updated;
     });
-    showToast(`Loaded preset: ${preset.name}`);
+
+    const target = targetIndex !== null ? targetIndex : medsList.length - 1;
+    setAutoFilledIndices(prev => ({ ...prev, [target]: true }));
+    setActiveDropdownIndex(null);
+    showToast(`Loaded ${preset.name} with standard dose & instructions`);
+  };
+
+  // Load an entire multi-medication protocol bundle (e.g. Post-PCI CAD)
+  const handleApplyBundle = (bundle) => {
+    if (!bundle.medications || bundle.medications.length === 0) return;
+
+    const newMeds = bundle.medications.map(m => ({
+      name: m.name,
+      dose: m.dose || '',
+      doseType: m.doseType || 'Tablet',
+      frequency: m.frequency || 'Once daily',
+      route: m.route || 'Oral',
+      days: m.days || 30,
+      comment: m.comment || '',
+      dateFrom: getTodayString()
+    }));
+
+    setMedsList(newMeds);
+    setShowBundlesModal(false);
+    showToast(`Loaded protocol bundle: ${bundle.title} (${newMeds.length} medications)`);
+  };
+
+  // Save current item as doctor custom preset
+  const handleSaveToFormulary = (med) => {
+    if (!med.name || !med.name.trim()) {
+      showToast('Please enter medicine name before saving', 'error');
+      return;
+    }
+
+    const saved = saveCustomMedication({
+      name: med.name.trim(),
+      dose: med.dose || '',
+      doseType: med.doseType || 'Tablet',
+      frequency: med.frequency || 'Once daily',
+      route: med.route || 'Oral',
+      days: med.days || 30,
+      comment: med.comment || '',
+      category: selectedSpecialty !== 'all' && selectedSpecialty !== 'favorites' ? selectedSpecialty : 'cardiology'
+    });
+
+    if (saved) {
+      showToast(`⭐ Saved "${saved.name}" to your preset formulary!`);
+    }
   };
 
   const handleRemoveField = (index) => {
     if (medsList.length <= 1) return;
     setMedsList(prev => prev.filter((_, idx) => idx !== index));
+    setAutoFilledIndices(prev => {
+      const copy = { ...prev };
+      delete copy[index];
+      return copy;
+    });
   };
 
   const handleMedChange = (index, field, value) => {
@@ -100,7 +206,58 @@ export const MedicationsTab = () => {
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
+
+    if (field === 'name') {
+      setSearchQueryMap(prev => ({ ...prev, [index]: value }));
+      if (value.trim().length >= 1) {
+        setActiveDropdownIndex(index);
+      } else {
+        setActiveDropdownIndex(null);
+      }
+    }
   };
+
+  const doseTypeOptions = [
+    'Tablet',
+    'Capsule',
+    'Syrup',
+    'Sublingual Tablet',
+    'Inhaler',
+    'Injection',
+    'Oral Softgel',
+    'Sachet',
+    'Cream',
+    'Drops'
+  ];
+
+  const frequencyOptions = [
+    'Once in morning',
+    'Once in night',
+    'Once daily',
+    'Twice daily',
+    '1-0-0 (OD)',
+    '0-1-0 (OD)',
+    '0-0-1 (OD)',
+    '1-0-1 (BD)',
+    '1-1-1 (TDS)',
+    '3 times daily',
+    '4 times daily',
+    'Every 8 hours',
+    'Every 12 hours',
+    'SOS (as needed)',
+    'Once every 15 days',
+    'At bedtime'
+  ];
+
+  const routeOptions = [
+    'Oral',
+    'Sublingual',
+    'Inhalation',
+    'IV',
+    'IM',
+    'Topical',
+    'Eye/Ear Drop'
+  ];
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -128,164 +285,421 @@ export const MedicationsTab = () => {
     }
   };
 
-  const doseTypeOptions = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Drops', 'Inhaler', 'Sachet'];
-  const frequencyOptions = [
-    'Once in morning',
-    'Once in night',
-    'Once daily',
-    'Twice daily',
-    '3 times daily',
-    '4 times daily',
-    'Every 6 hours',
-    'As needed (PRN)',
-    'At bedtime'
-  ];
-  const routeOptions = ['Oral', 'IV', 'IM', 'Topical', 'Sublingual', 'Inhalation', 'Eye/Ear Drop'];
-
   if (isAdding) {
     return (
       <div style={{ marginTop: 20 }}>
-        <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>
-            {editingMedId ? 'Edit Prescription Item' : 'Add Medications to Prescription'}
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            Select from clinical quick presets or enter customized formulation, route and dosage.
-          </p>
+        {/* Top Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>
+              {editingMedId ? 'Edit Prescription Item' : 'Add Medications to Prescription'}
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>
+              Type 2 letters (e.g. <strong>"Lo"</strong> or <strong>"Nex"</strong>) for smart autocomplete, or click a clinical preset below.
+            </p>
+          </div>
+
+          {!editingMedId && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowBundlesModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', padding: '6px 12px' }}
+            >
+              <Layers size={15} color="var(--brand-cyan)" />
+              <span>Browse Disease Protocols / Bundles</span>
+            </button>
+          )}
         </div>
 
-        {/* Quick Presets Bar */}
-        <div className="card" style={{ padding: '14px 18px', marginBottom: 20, background: '#f8fafc' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.775rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--brand-cyan)', marginBottom: 10 }}>
-            <Sparkles size={14} />
-            <span>Quick Prescription Presets:</span>
+        {/* Diagnosis-Aware Recommendation Banner */}
+        {suggestedMedications.length > 0 && !editingMedId && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: '#f0fdf4',
+              border: '1.5px solid #bbf7d0',
+              marginBottom: 16
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.825rem', fontWeight: 800, color: '#15803d' }}>
+                <Sparkles size={16} />
+                <span>Suggested for Patient's Diagnosis:</span>
+                <span style={{ fontWeight: 600, color: '#166534', background: '#dcfce7', padding: '1px 8px', borderRadius: 4 }}>
+                  {patientDiagnosisText.slice(0, 50)}...
+                </span>
+              </div>
+
+              {suggestedBundles.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleApplyBundle(suggestedBundles[0])}
+                  className="btn btn-sm"
+                  style={{
+                    background: '#16a34a',
+                    color: '#ffffff',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  <Layers size={13} />
+                  <span>⚡ 1-Click Load Full Protocol ({suggestedBundles[0].title})</span>
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {suggestedMedications.slice(0, 8).map((sug) => (
+                <button
+                  key={sug.id}
+                  type="button"
+                  onClick={() => handleApplyPreset(sug)}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #86efac',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.775rem',
+                    fontWeight: 700,
+                    color: '#166534',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>+ {sug.name}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#15803d', opacity: 0.85 }}>({sug.dose})</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {quickDrugPresets.map((preset, i) => (
+        )}
+
+        {/* Multi-Specialty Quick Presets Tabs & Pills */}
+        <div className="card" style={{ padding: '14px 16px', marginBottom: 20, background: '#f8fafc' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)' }}>
+              <BookmarkCheck size={15} />
+              <span>Routine Clinical Presets &amp; Favorites:</span>
+            </div>
+            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+              Click any medication to auto-populate
+            </div>
+          </div>
+
+          {/* Specialty Category Tabs */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 10 }}>
+            {CLINICAL_SPECIALTIES.map(cat => (
               <button
-                key={i}
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedSpecialty(cat.id)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: selectedSpecialty === cat.id ? '1px solid var(--brand-cyan)' : '1px solid var(--border-subtle)',
+                  background: selectedSpecialty === cat.id ? 'var(--brand-cyan-light)' : '#ffffff',
+                  color: selectedSpecialty === cat.id ? 'var(--brand-cyan)' : 'var(--text-secondary)',
+                  fontSize: '0.75rem',
+                  fontWeight: selectedSpecialty === cat.id ? 800 : 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setSelectedSpecialty('favorites')}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                border: selectedSpecialty === 'favorites' ? '1px solid #f59e0b' : '1px solid var(--border-subtle)',
+                background: selectedSpecialty === 'favorites' ? '#fef3c7' : '#ffffff',
+                color: selectedSpecialty === 'favorites' ? '#b45309' : 'var(--text-secondary)',
+                fontSize: '0.75rem',
+                fontWeight: selectedSpecialty === 'favorites' ? 800 : 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              <Star size={13} fill={selectedSpecialty === 'favorites' ? '#f59e0b' : 'none'} color="#f59e0b" />
+              <span>Doctor Favorites</span>
+            </button>
+          </div>
+
+          {/* Preset Chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {specialQuickDrugs.map((preset) => (
+              <button
+                key={preset.id || preset.name}
                 type="button"
                 className="btn btn-secondary btn-sm"
-                style={{ fontSize: '0.775rem', padding: '4px 10px' }}
+                style={{ fontSize: '0.775rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
                 onClick={() => handleApplyPreset(preset)}
+                title={`Formulation: ${preset.doseType}, Frequency: ${preset.frequency}, Route: ${preset.route}`}
               >
-                + {preset.name}
+                <span>+ {preset.name}</span>
+                {preset.dose && <span style={{ color: 'var(--brand-cyan)', fontWeight: 700 }}>{preset.dose}</span>}
               </button>
             ))}
           </div>
         </div>
 
+        {/* Prescription Form */}
         <form onSubmit={handleSave}>
-          {medsList.map((med, index) => (
-            <div key={index} className="card" style={{ position: 'relative', marginBottom: 20 }}>
-              {!editingMedId && medsList.length > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--brand-cyan)' }}>
-                    Item #{index + 1}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-outline btn-sm"
-                    onClick={() => handleRemoveField(index)}
-                  >
-                    <X size={14} />
-                    <span>Remove</span>
-                  </button>
-                </div>
-              )}
+          {medsList.map((med, index) => {
+            const currentQuery = searchQueryMap[index] || med.name || '';
+            const searchSuggestions = activeDropdownIndex === index
+              ? searchMedications(currentQuery, 'all', 8)
+              : [];
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Medicine / Brand Name *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Amoxicillin, Panadol, Lipitor"
-                    value={med.name}
-                    onChange={(e) => handleMedChange(index, 'name', e.target.value)}
-                    required
-                  />
+            return (
+              <div
+                key={index}
+                className="card"
+                style={{
+                  position: 'relative',
+                  marginBottom: 20,
+                  border: autoFilledIndices[index] ? '1.5px solid #38bdf8' : '1px solid var(--border-subtle)'
+                }}
+              >
+                {/* Header row for item */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--brand-cyan)' }}>
+                      Medication #{index + 1}
+                    </span>
+                    {autoFilledIndices[index] && (
+                      <span style={{ fontSize: '0.7rem', color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: 4, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Check size={12} color="#0284c7" />
+                        <span>Standard dosage &amp; timing auto-filled</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveToFormulary(med)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.725rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
+                      title="Save this medicine with current dosage into your personal presets"
+                    >
+                      <Star size={12} color="#f59e0b" />
+                      <span>Save as Preset</span>
+                    </button>
+
+                    {!editingMedId && medsList.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn-outline btn-sm"
+                        style={{ padding: '3px 8px' }}
+                        onClick={() => handleRemoveField(index)}
+                      >
+                        <X size={13} />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Strength / Dose</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. 500 mg, 10 ml, 20 mg"
-                    value={med.dose}
-                    onChange={(e) => handleMedChange(index, 'dose', e.target.value)}
-                  />
+                <div className="form-row">
+                  {/* Medicine Name with Smart Autocomplete */}
+                  <div className="form-group" style={{ position: 'relative' }}>
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Medicine / Brand Name *</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Type name for suggestions</span>
+                    </label>
+
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. Loprin, Nexum, Crestat, Concor, Augmentin"
+                        value={med.name}
+                        onChange={(e) => handleMedChange(index, 'name', e.target.value)}
+                        onFocus={() => {
+                          if ((med.name || '').trim().length >= 1) {
+                            setActiveDropdownIndex(index);
+                          }
+                        }}
+                        required
+                        autoComplete="off"
+                        style={{ paddingRight: 32 }}
+                      />
+                      <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    </div>
+
+                    {/* Floating Autocomplete Dropdown */}
+                    {activeDropdownIndex === index && searchSuggestions.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          zIndex: 999,
+                          background: '#ffffff',
+                          border: '1.5px solid var(--brand-cyan)',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+                          marginTop: 4,
+                          maxHeight: '260px',
+                          overflowY: 'auto'
+                        }}
+                      >
+                        <div style={{ padding: '6px 10px', fontSize: '0.675rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Matching Clinical Formulary:</span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveDropdownIndex(null)}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
+                          >
+                            Close ✕
+                          </button>
+                        </div>
+
+                        {searchSuggestions.map((sug) => (
+                          <div
+                            key={sug.id || sug.name}
+                            onClick={() => handleApplyPreset(sug, index)}
+                            style={{
+                              padding: '8px 12px',
+                              borderBottom: '1px solid #f1f5f9',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              transition: 'background 0.1s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f0f9ff'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                                {sug.name}
+                              </div>
+                              <div style={{ fontSize: '0.725rem', color: '#64748b', display: 'flex', gap: 6 }}>
+                                <span>{sug.doseType}</span>
+                                <span>•</span>
+                                <span>{sug.frequency}</span>
+                                {sug.comment && (
+                                  <>
+                                    <span>•</span>
+                                    <span style={{ color: '#0369a1' }}>{sug.comment}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--brand-cyan)', background: '#e0f2fe', padding: '2px 8px', borderRadius: 4 }}>
+                                {sug.dose}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Strength / Dose */}
+                  <div className="form-group">
+                    <label className="form-label">Strength / Dose</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. 75 mg, 40 mg, 10 ml"
+                      value={med.dose}
+                      onChange={(e) => handleMedChange(index, 'dose', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-3">
+                  <div className="form-group">
+                    <label className="form-label">Formulation</label>
+                    <select
+                      className="form-select"
+                      value={med.doseType}
+                      onChange={(e) => handleMedChange(index, 'doseType', e.target.value)}
+                    >
+                      {doseTypeOptions.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Dosage Frequency</label>
+                    <select
+                      className="form-select"
+                      value={med.frequency}
+                      onChange={(e) => handleMedChange(index, 'frequency', e.target.value)}
+                    >
+                      {frequencyOptions.map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Administration Route</label>
+                    <select
+                      className="form-select"
+                      value={med.route}
+                      onChange={(e) => handleMedChange(index, 'route', e.target.value)}
+                    >
+                      {routeOptions.map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Duration (Days)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-input"
+                      placeholder="e.g. 30"
+                      value={med.days}
+                      onChange={(e) => handleMedChange(index, 'days', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Patient Instructions / Timing</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Take 30 mins before breakfast on an empty stomach"
+                      value={med.comment}
+                      onChange={(e) => handleMedChange(index, 'comment', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div className="form-row-3">
-                <div className="form-group">
-                  <label className="form-label">Formulation</label>
-                  <select
-                    className="form-select"
-                    value={med.doseType}
-                    onChange={(e) => handleMedChange(index, 'doseType', e.target.value)}
-                  >
-                    {doseTypeOptions.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Dosage Frequency</label>
-                  <select
-                    className="form-select"
-                    value={med.frequency}
-                    onChange={(e) => handleMedChange(index, 'frequency', e.target.value)}
-                  >
-                    {frequencyOptions.map(f => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Administration Route</label>
-                  <select
-                    className="form-select"
-                    value={med.route}
-                    onChange={(e) => handleMedChange(index, 'route', e.target.value)}
-                  >
-                    {routeOptions.map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Duration (Days)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="form-input"
-                    placeholder="e.g. 5"
-                    value={med.days}
-                    onChange={(e) => handleMedChange(index, 'days', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Patient Instructions / Timing</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Take after breakfast and dinner with water"
-                    value={med.comment}
-                    onChange={(e) => handleMedChange(index, 'comment', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {!editingMedId && (
             <button
@@ -415,6 +829,113 @@ export const MedicationsTab = () => {
             </div>
           </div>
         ))
+      )}
+
+      {/* Disease Protocols / Bundles Modal */}
+      {showBundlesModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowBundlesModal(false);
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '680px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid #e2e8f0',
+              padding: '24px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Layers size={20} color="var(--brand-cyan)" />
+                  <span>Clinical Disease Protocols &amp; Regimens</span>
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                  Load complete, guideline-directed multi-drug regimens with 1 click.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBundlesModal(false)}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', padding: 6 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {getAllDiseaseBundles().map((bundle) => (
+                <div
+                  key={bundle.id}
+                  style={{
+                    background: '#f8fafc',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '14px 16px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 10 }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                        {bundle.title}
+                      </h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.775rem', color: '#64748b' }}>
+                        {bundle.description}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '0.775rem', padding: '5px 12px', whiteSpace: 'nowrap' }}
+                      onClick={() => handleApplyBundle(bundle)}
+                    >
+                      ⚡ Load Regimen
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {bundle.medications.map((m, mIdx) => (
+                      <span
+                        key={mIdx}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '4px',
+                          padding: '3px 8px',
+                          fontSize: '0.725rem',
+                          color: '#334155',
+                          fontWeight: 600
+                        }}
+                      >
+                        💊 <strong>{m.name}</strong> ({m.dose}) - {m.frequency}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmModal

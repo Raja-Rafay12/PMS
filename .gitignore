@@ -41,3 +41,6 @@ server/data/*.json
 *.mp4
 *.mov
 *.webm
+*.ogg
+*.mp3
+*.wav
