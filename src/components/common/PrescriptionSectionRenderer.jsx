@@ -144,7 +144,7 @@ export const PrescriptionSectionRenderer = ({
       ];
 
   // Render individual section blocks
-  const renderSectionBlock = (section) => {
+  const renderSectionBlock = (section, isColumn = false) => {
     switch (section.id) {
       case 'header':
         return (
@@ -162,27 +162,28 @@ export const PrescriptionSectionRenderer = ({
               background: '#f8fafc',
               border: '1px solid #cbd5e1',
               borderRadius: '8px',
-              padding: isPreview ? '8px 14px' : '12px 18px',
+              padding: isPreview ? '8px 12px' : '10px 14px',
               display: 'grid',
-              gridTemplateColumns: hasBloodGroup ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)',
-              gap: 10,
+              gridTemplateColumns: isColumn ? 'repeat(2, 1fr)' : (hasBloodGroup ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)'),
+              gap: isColumn ? '6px 10px' : 10,
               fontSize: isPreview ? '0.75rem' : '0.85rem',
-              marginBottom: 16
+              marginBottom: 14,
+              boxSizing: 'border-box'
             }}
           >
             <div>
               <div style={{ fontSize: '0.675rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Patient Name</div>
-              <div style={{ fontWeight: 800, fontSize: isPreview ? '0.85rem' : '0.975rem', color: '#0f172a' }}>{patient.name}</div>
+              <div style={{ fontWeight: 800, fontSize: isPreview ? '0.85rem' : '0.95rem', color: '#0f172a', wordBreak: 'break-word' }}>{patient.name}</div>
             </div>
 
             <div>
               <div style={{ fontSize: '0.675rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Age / Gender</div>
-              <div style={{ fontWeight: 600 }}>{formatAge(patient)} / {patient.gender}</div>
+              <div style={{ fontWeight: 600, wordBreak: 'break-word' }}>{formatAge(patient)} / {patient.gender}</div>
             </div>
 
             <div>
               <div style={{ fontSize: '0.675rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Phone / MRN</div>
-              <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{patient.phone}</div>
+              <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>{patient.phone}</div>
             </div>
 
             {hasBloodGroup && (
@@ -202,13 +203,13 @@ export const PrescriptionSectionRenderer = ({
       case 'clinical_notes':
         if (!notesToPrint || notesToPrint.length === 0) return null;
         return (
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
             <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 3, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📝</span>
               <span>Allergies &amp; Clinical Diagnosis</span>
             </h4>
             {notesToPrint.map((n, idx) => (
-              <div key={n.id || idx} style={{ fontSize: '0.825rem', marginBottom: 8, lineHeight: 1.45 }}>
+              <div key={n.id || idx} style={{ fontSize: '0.825rem', marginBottom: 8, lineHeight: 1.45, wordBreak: 'break-word' }}>
                 {/* Drug Allergies */}
                 <div style={{ marginBottom: 6, padding: '4px 8px', background: n.allergicHistory ? '#fef2f2' : '#f8fafc', borderRadius: 4, borderLeft: `3px solid ${n.allergicHistory ? '#dc2626' : '#10b981'}` }}>
                   <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: n.allergicHistory ? '#b91c1c' : '#047857' }}>
@@ -248,19 +249,19 @@ export const PrescriptionSectionRenderer = ({
       case 'vitals_exam':
         if (!examsToPrint || examsToPrint.length === 0) return null;
         return (
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
             <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 3, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>🩺</span>
               <span>Vital Signs &amp; Complaints</span>
             </h4>
             {examsToPrint.map((e, idx) => (
-              <div key={e.id || idx} style={{ fontSize: '0.825rem' }}>
+              <div key={e.id || idx} style={{ fontSize: '0.825rem', wordBreak: 'break-word' }}>
                 {/* Vital Signs */}
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
                     Vital Signs:
                   </div>
-                  <div style={{ display: 'flex', gap: '6px 10px', flexWrap: 'wrap', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 10px', borderRadius: 4, fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', gap: '6px 8px', flexWrap: 'wrap', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: 4, fontSize: '0.8rem' }}>
                     {e.vitals?.bpSystolic && <span><strong>BP:</strong> {e.vitals.bpSystolic}/{e.vitals.bpDiastolic || '80'} mmHg</span>}
                     {e.vitals?.pulse && <span><strong>Pulse:</strong> {e.vitals.pulse} /min</span>}
                     {e.vitals?.temperature && <span><strong>Temp:</strong> {e.vitals.temperature} °F</span>}
@@ -310,88 +311,90 @@ export const PrescriptionSectionRenderer = ({
       case 'rx_medications':
         if (!includeMedications || !patient.medications || patient.medications.length === 0) return null;
         return (
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: 6, marginBottom: 10 }}>
+          <div style={{ marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: 5, marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', fontFamily: 'serif' }}>&#8478;</span>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.04em', margin: 0 }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', fontFamily: 'serif' }}>&#8478;</span>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.04em', margin: 0 }}>
                   Rx Prescriptions
                 </h4>
               </div>
               {includeUrduTranslation && (
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', direction: 'rtl', fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif" }}>
+                <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0f172a', direction: 'rtl', fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif" }}>
                   نسخہ ادویات (طریقہ استعمال)
                 </div>
               )}
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isPreview ? '0.785rem' : '0.85rem' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: isPreview ? '0.75rem' : (isColumn ? '0.785rem' : '0.825rem'), boxSizing: 'border-box' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px', width: '35%' }}>
+                  <th style={{ padding: '5px 6px', width: isColumn ? '36%' : '35%', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                     <div>Medicine Formulation</div>
-                    {includeUrduTranslation && <div style={{ fontSize: '0.675rem', color: '#0284c7', direction: 'rtl' }}>دوا کا نام</div>}
+                    {includeUrduTranslation && <div style={{ fontSize: '0.65rem', color: '#0284c7', direction: 'rtl' }}>دوا کا نام</div>}
                   </th>
-                  <th style={{ padding: '6px 8px', width: '28%' }}>
+                  <th style={{ padding: '5px 6px', width: isColumn ? '32%' : '28%', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                     <div>Frequency &amp; Route</div>
-                    {includeUrduTranslation && <div style={{ fontSize: '0.675rem', color: '#0284c7', direction: 'rtl' }}>اوقات استعمال</div>}
+                    {includeUrduTranslation && <div style={{ fontSize: '0.65rem', color: '#0284c7', direction: 'rtl' }}>اوقات استعمال</div>}
                   </th>
-                  <th style={{ padding: '6px 8px', width: '15%' }}>
+                  <th style={{ padding: '5px 4px', width: isColumn ? '12%' : '15%', boxSizing: 'border-box', textAlign: isColumn ? 'center' : 'left', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                     <div>Duration</div>
-                    {includeUrduTranslation && <div style={{ fontSize: '0.675rem', color: '#0284c7', direction: 'rtl' }}>مدت</div>}
+                    {includeUrduTranslation && <div style={{ fontSize: '0.65rem', color: '#0284c7', direction: 'rtl' }}>مدت</div>}
                   </th>
-                  <th style={{ padding: '6px 8px', width: '22%' }}>
+                  <th style={{ padding: '5px 6px', width: isColumn ? '20%' : '22%', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                     <div>Instructions</div>
-                    {includeUrduTranslation && <div style={{ fontSize: '0.675rem', color: '#0284c7', direction: 'rtl' }}>ہدایات</div>}
+                    {includeUrduTranslation && <div style={{ fontSize: '0.65rem', color: '#0284c7', direction: 'rtl' }}>ہدایات</div>}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {patient.medications.map((m, idx) => (
                   <tr key={m.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 8px', verticalAlign: 'top' }}>
-                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: isPreview ? '0.825rem' : '0.9rem' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: isPreview ? '0.8rem' : '0.85rem' }}>
                         {idx + 1}. {m.name}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                        {m.dose && <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700 }}>{m.dose}</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                        {m.dose && <span style={{ fontSize: '0.725rem', color: '#0284c7', fontWeight: 700 }}>{m.dose}</span>}
                         {m.doseType && (
-                          <span style={{ fontSize: '0.725rem', color: '#475569', background: '#f1f5f9', padding: '1px 5px', borderRadius: 3 }}>
+                          <span style={{ fontSize: '0.7rem', color: '#475569', background: '#f1f5f9', padding: '1px 4px', borderRadius: 3 }}>
                             {m.doseType} {includeUrduTranslation && `(${translateDoseType(m.doseType)})`}
                           </span>
                         )}
                       </div>
                     </td>
 
-                    <td style={{ padding: '8px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{m.frequency}</div>
                       {includeUrduTranslation && (
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0369a1', direction: 'rtl', textAlign: 'left', marginTop: 1 }}>
+                        <div style={{ fontSize: '0.725rem', fontWeight: 600, color: '#0369a1', direction: 'rtl', textAlign: 'left', marginTop: 1 }}>
                           {translateFrequency(m.frequency)}
                         </div>
                       )}
-                      <div style={{ fontSize: '0.725rem', color: '#64748b', marginTop: 2 }}>
-                        Route: {m.route} {includeUrduTranslation && `(${translateRoute(m.route)})`}
-                      </div>
+                      {m.route && m.route.trim() !== '' && (
+                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>
+                          Route: {m.route} {includeUrduTranslation && translateRoute(m.route) ? `(${translateRoute(m.route)})` : ''}
+                        </div>
+                      )}
                     </td>
 
-                    <td style={{ padding: '8px 8px', verticalAlign: 'top' }}>
+                    <td style={{ padding: '6px 4px', verticalAlign: 'top', textAlign: isColumn ? 'center' : 'left', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                       <div style={{ fontWeight: 800, color: '#0f172a' }}>
-                        {m.days ? `${m.days} days` : '—'}
+                        {m.days ? `${m.days} d` : '—'}
                       </div>
                       {includeUrduTranslation && m.days && (
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7', direction: 'rtl', textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0284c7', direction: 'rtl', textAlign: isColumn ? 'center' : 'left' }}>
                           {translateDuration(m.days)}
                         </div>
                       )}
                     </td>
 
-                    <td style={{ padding: '8px 8px', verticalAlign: 'top' }}>
-                      <div style={{ fontSize: '0.785rem', color: '#334155' }}>
+                    <td style={{ padding: '6px 6px', verticalAlign: 'top', boxSizing: 'border-box', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#334155' }}>
                         {m.comment || 'As advised'}
                       </div>
                       {includeUrduTranslation && m.comment && (
-                        <div style={{ fontSize: '0.725rem', color: '#1e293b', direction: 'rtl', textAlign: 'left', marginTop: 2, background: '#f8fafc', padding: '2px 6px', borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#1e293b', direction: 'rtl', textAlign: 'left', marginTop: 2, background: '#f8fafc', padding: '2px 4px', borderRadius: 3, border: '1px solid #e2e8f0' }}>
                           {translateInstructionText(m.comment)}
                         </div>
                       )}
@@ -406,23 +409,23 @@ export const PrescriptionSectionRenderer = ({
       case 'lab_reports':
         if (!labsToPrint || labsToPrint.length === 0) return null;
         return (
-          <div style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
+            <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>🧪</span>
               <span>Laboratory Investigations Summary</span>
             </h4>
             {labsToPrint.map((l, idx) => (
               <div key={l.id || idx} style={{ marginBottom: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0284c7', marginBottom: 3 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0284c7', marginBottom: 3, wordBreak: 'break-word' }}>
                   {l.title || 'Laboratory Report'} ({l.formattedDate || l.date})
                 </div>
                 {l.entries && l.entries.length > 0 && (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: '0.775rem', boxSizing: 'border-box' }}>
                     <tbody>
                       {l.entries.map((ent, eIdx) => (
                         <tr key={eIdx} style={{ borderBottom: '1px dotted #cbd5e1' }}>
-                          <td style={{ padding: '3px 6px', fontWeight: 600, width: '60%' }}>{ent.key}</td>
-                          <td style={{ padding: '3px 6px', width: '40%', fontFamily: 'var(--font-mono)' }}>{ent.value}</td>
+                          <td style={{ padding: '3px 4px', fontWeight: 600, width: '62%', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>{ent.key}</td>
+                          <td style={{ padding: '3px 4px', width: '38%', fontFamily: 'var(--font-mono)', textAlign: 'right', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>{ent.value}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -436,14 +439,14 @@ export const PrescriptionSectionRenderer = ({
       case 'impression_advice':
         if (!includeImpression || !patient.impressionAdvice) return null;
         return (
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16, width: '100%', boxSizing: 'border-box' }}>
             {patient.impressionAdvice.impression && (
               <div style={{ marginBottom: 8 }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 6, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 6, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>💡</span>
                   <span>Clinical Impression &amp; Diagnosis</span>
                 </h4>
-                <div style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.45 }}>
+                <div style={{ fontSize: '0.825rem', color: '#334155', fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.45, wordBreak: 'break-word' }}>
                   {patient.impressionAdvice.impression}
                 </div>
               </div>
@@ -451,19 +454,19 @@ export const PrescriptionSectionRenderer = ({
 
             {patient.impressionAdvice.advice && (
               <div style={{ marginBottom: 8 }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 6, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 6, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>📋</span>
                   <span>General Advice &amp; Follow-up Instructions</span>
                 </h4>
-                <div style={{ fontSize: '0.825rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.45 }}>
+                <div style={{ fontSize: '0.8rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: 1.45, wordBreak: 'break-word' }}>
                   {patient.impressionAdvice.advice}
                 </div>
 
                 {includeUrduTranslation && (
                   <div
                     style={{
-                      marginTop: 10,
-                      padding: '10px 14px',
+                      marginTop: 8,
+                      padding: '8px 12px',
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
                       borderRadius: 6,
@@ -473,7 +476,7 @@ export const PrescriptionSectionRenderer = ({
                   >
                     <div
                       style={{
-                        fontSize: '0.8rem',
+                        fontSize: '0.775rem',
                         fontWeight: 800,
                         color: '#0f172a',
                         marginBottom: 4,
@@ -484,10 +487,11 @@ export const PrescriptionSectionRenderer = ({
                     </div>
                     <div
                       style={{
-                        fontSize: '0.825rem',
+                        fontSize: '0.8rem',
                         color: '#1e293b',
                         fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif",
-                        lineHeight: 1.6
+                        lineHeight: 1.5,
+                        wordBreak: 'break-word'
                       }}
                     >
                       {translateInstructionText(patient.impressionAdvice.advice)}
@@ -500,8 +504,8 @@ export const PrescriptionSectionRenderer = ({
             {/* Reference Safety Warning Banner */}
             <div
               style={{
-                marginTop: 12,
-                padding: '8px 14px',
+                marginTop: 10,
+                padding: '8px 12px',
                 background: '#f8fafc',
                 border: '1px solid #cbd5e1',
                 borderRadius: 6,
@@ -509,12 +513,13 @@ export const PrescriptionSectionRenderer = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: 8
+                gap: 8,
+                boxSizing: 'border-box'
               }}
             >
               <div
                 style={{
-                  fontSize: '0.825rem',
+                  fontSize: '0.8rem',
                   color: '#b91c1c',
                   fontWeight: 700,
                   fontFamily: "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif",
@@ -525,7 +530,7 @@ export const PrescriptionSectionRenderer = ({
               </div>
 
               {followUpDateToDisplay && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>
                   <span>Next Follow-up:</span>
                   <span style={{ color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: 4, fontWeight: 800, border: '1px solid #bae6fd' }}>
                     {followUpDateToDisplay}
@@ -541,10 +546,10 @@ export const PrescriptionSectionRenderer = ({
 
       case 'footer_signature':
         return (
-          <div style={{ marginTop: 'auto', paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #e2e8f0' }}>
+          <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #e2e8f0', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <QrCode size={44} color="#0f172a" />
-              <div style={{ fontSize: '0.725rem', color: '#64748b', lineHeight: 1.3 }}>
+              <QrCode size={40} color="#0f172a" />
+              <div style={{ fontSize: '0.7rem', color: '#64748b', lineHeight: 1.3 }}>
                 <div style={{ fontWeight: 700, color: '#0f172a' }}>Verified Digital Prescription</div>
                 <div>Valid across accredited pharmacies</div>
                 {footerNote ? (
@@ -557,11 +562,11 @@ export const PrescriptionSectionRenderer = ({
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', minWidth: 200, borderTop: '1.5px solid #0f172a', paddingTop: 6 }}>
-              <div style={{ fontWeight: 800, fontSize: '0.925rem', color: '#0f172a' }}>
+            <div style={{ textAlign: 'center', minWidth: 180, borderTop: '1.5px solid #0f172a', paddingTop: 4 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
                 {doctorName || 'Attending Physician'}
               </div>
-              <div style={{ fontSize: '0.725rem', color: '#64748b' }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
                 Authorized Signatory &amp; Stamp
               </div>
             </div>
@@ -605,11 +610,27 @@ export const PrescriptionSectionRenderer = ({
   }
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', boxSizing: 'border-box' }}>
       {rows.map((row, rIdx) => {
         if (row.type === 'columns') {
           const leftItem = row.items.find(i => i.align === 'left') || row.items[0];
           const rightItem = row.items.find(i => i.align === 'right') || row.items[1];
+
+          const leftIsRx = leftItem.id === 'rx_medications';
+          const rightIsRx = rightItem.id === 'rx_medications';
+          const isLeftMain = leftIsRx || (leftItem.id === 'demographics' && (rightItem.id === 'vitals_exam' || rightItem.id === 'lab_reports' || rightItem.id === 'clinical_notes'));
+          const isRightMain = rightIsRx || (rightItem.id === 'demographics' && (leftItem.id === 'vitals_exam' || leftItem.id === 'lab_reports' || leftItem.id === 'clinical_notes'));
+
+          let leftWidth = '48.5%';
+          let rightWidth = '48.5%';
+
+          if (isLeftMain && !isRightMain) {
+            leftWidth = '58%';
+            rightWidth = '39%';
+          } else if (isRightMain && !isLeftMain) {
+            leftWidth = '39%';
+            rightWidth = '58%';
+          }
 
           return (
             <div
@@ -619,15 +640,34 @@ export const PrescriptionSectionRenderer = ({
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 width: '100%',
-                gap: 18,
-                marginBottom: 14
+                gap: 16,
+                marginBottom: 12,
+                boxSizing: 'border-box'
               }}
             >
-              <div style={{ flex: '0 0 38%', maxWidth: '38%', borderRight: '1px dashed #e2e8f0', paddingRight: 14 }}>
-                {renderSectionBlock(leftItem)}
+              <div
+                style={{
+                  flex: `0 0 ${leftWidth}`,
+                  maxWidth: leftWidth,
+                  width: leftWidth,
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  borderRight: '1px dashed #e2e8f0',
+                  paddingRight: 12
+                }}
+              >
+                {renderSectionBlock(leftItem, true)}
               </div>
-              <div style={{ flex: '0 0 60%', maxWidth: '60%' }}>
-                {renderSectionBlock(rightItem)}
+              <div
+                style={{
+                  flex: `0 0 ${rightWidth}`,
+                  maxWidth: rightWidth,
+                  width: rightWidth,
+                  minWidth: 0,
+                  boxSizing: 'border-box'
+                }}
+              >
+                {renderSectionBlock(rightItem, true)}
               </div>
             </div>
           );
@@ -635,8 +675,8 @@ export const PrescriptionSectionRenderer = ({
 
         const singleItem = row.items[0];
         return (
-          <div key={`p-row-${rIdx}`} style={{ width: '100%' }}>
-            {renderSectionBlock(singleItem)}
+          <div key={`p-row-${rIdx}`} style={{ width: '100%', boxSizing: 'border-box' }}>
+            {renderSectionBlock(singleItem, false)}
           </div>
         );
       })}

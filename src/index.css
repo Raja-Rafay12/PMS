@@ -2078,21 +2078,52 @@ input[type="password"]::-ms-clear {
 
 /* Print Overrides */
 @media print {
-  body {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  html, body {
     background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .navbar, .no-print, .action-button-group, .print-selection-panel {
+
+  .navbar,
+  .no-print,
+  .action-button-group,
+  .print-selection-panel,
+  .toast-container,
+  .toast,
+  .modal-overlay,
+  .modal-card,
+  [role="alert"] {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
   }
+
   .main-content {
     padding: 0 !important;
+    margin: 0 !important;
     max-width: 100% !important;
   }
+
   .a4-page {
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
+    margin: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 

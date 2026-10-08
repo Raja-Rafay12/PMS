@@ -9,7 +9,7 @@ export const Toast = () => {
   const isError = toast.type === 'error';
 
   return (
-    <div className="toast-container">
+    <div className="toast-container no-print">
       <div className={`toast ${isError ? 'toast-error' : ''}`}>
         {isError ? <AlertCircle size={18} /> : <CheckCircle2 size={18} color="#4ade80" />}
         <span>{toast.message}</span>

@@ -290,7 +290,6 @@ export const PrintSummaryView = () => {
   };
 
   const handleDownloadPDF = () => {
-    showToast('Triggering print dialog to save as PDF...');
     window.print();
   };
 
