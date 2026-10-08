@@ -651,6 +651,7 @@ export const PrescriptionSectionRenderer = ({
                   maxWidth: leftWidth,
                   width: leftWidth,
                   minWidth: 0,
+                  overflowX: 'hidden',
                   boxSizing: 'border-box',
                   borderRight: '1px dashed #e2e8f0',
                   paddingRight: 12
@@ -664,6 +665,7 @@ export const PrescriptionSectionRenderer = ({
                   maxWidth: rightWidth,
                   width: rightWidth,
                   minWidth: 0,
+                  overflowX: 'hidden',
                   boxSizing: 'border-box'
                 }}
               >
