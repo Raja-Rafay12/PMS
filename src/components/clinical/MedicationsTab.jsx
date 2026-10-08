@@ -459,7 +459,7 @@ export const MedicationsTab = () => {
 
           {/* Preset Chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {specialQuickDrugs.map((preset) => (
+            {specialtyQuickDrugs.map((preset) => (
               <button
                 key={preset.id || preset.name}
                 type="button"
