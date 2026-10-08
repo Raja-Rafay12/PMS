@@ -268,6 +268,20 @@ export const MedicationsTab = () => {
       return;
     }
 
+    // Automatically learn and save all prescribed medications into doctor's formulary database
+    validMeds.forEach((m) => {
+      saveCustomMedication({
+        name: m.name.trim(),
+        dose: m.dose || '',
+        doseType: m.doseType || 'Tablet',
+        frequency: m.frequency || 'Once daily',
+        route: m.route || 'Oral',
+        days: m.days || 30,
+        comment: m.comment || '',
+        category: selectedSpecialty !== 'all' && selectedSpecialty !== 'favorites' ? selectedSpecialty : 'cardiology'
+      });
+    });
+
     if (editingMedId) {
       updateMedication(activePatient.id, editingMedId, validMeds[0]);
     } else {
@@ -592,8 +606,13 @@ export const MedicationsTab = () => {
                             onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
                           >
                             <div>
-                              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
-                                {sug.name}
+                              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>{sug.name}</span>
+                                {sug.isCustom && (
+                                  <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                    ⭐ Doctor Preset
+                                  </span>
+                                )}
                               </div>
                               <div style={{ fontSize: '0.725rem', color: '#64748b', display: 'flex', gap: 6 }}>
                                 <span>{sug.doseType}</span>
