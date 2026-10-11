@@ -76,7 +76,8 @@ export const DoctorLayoutCustomizerModal = ({
     const generatedSections = preset.generate();
     setFormState(prev => ({
       ...prev,
-      prescriptionSections: generatedSections
+      prescriptionSections: generatedSections,
+      ...(preset.columnSplit ? { columnSplit: preset.columnSplit } : {})
     }));
   };
 

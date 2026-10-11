@@ -42,27 +42,41 @@ export const LabReportsTab = () => {
   const [reportDate, setReportDate] = useState(getTodayString());
   const [notes, setNotes] = useState('');
   const [entries, setEntries] = useState([
-    { key: 'Hemoglobin', value: '' },
-    { key: 'Total Leucocyte Count (TLC)', value: '' }
+    { key: 'Hb', value: '' },
+    { key: 'TLC', value: '' },
+    { key: 'Plt', value: '' }
   ]);
 
   const commonTestSuggestions = [
-    'Hemoglobin',
-    'Total Leucocyte Count (TLC)',
-    'Platelets',
-    'ESR (1st Hour)',
-    'Fasting Blood Sugar',
+    'Hb',
+    'MCV',
+    'TLC',
+    'Plt',
+    'TSH',
+    'Crt',
     'HbA1c',
-    'Serum Creatinine',
-    'Blood Urea',
-    'SGPT (ALT)',
-    'Serum Bilirubin',
-    'Serum Electrolytes (Na/K/Cl)',
-    'Lipid Profile - Total Cholesterol',
-    'Urine Routine Examination',
-    'Chest X-Ray PA View',
-    'ECG 12-Lead'
+    'TC',
+    'LDL',
+    'HDL',
+    'TAG',
+    'ESR',
+    'FBS',
+    'RBS',
+    'B. Urea',
+    'ALT'
   ];
+
+  const handleAddQuickTest = (testKey) => {
+    setEntries(prev => {
+      const emptyIdx = prev.findIndex(e => !e.key.trim() && !e.value.trim());
+      if (emptyIdx !== -1) {
+        const updated = [...prev];
+        updated[emptyIdx] = { key: testKey, value: '' };
+        return updated;
+      }
+      return [...prev, { key: testKey, value: '' }];
+    });
+  };
 
   const labReports = activePatient?.labReports || [];
 
@@ -396,7 +410,48 @@ export const LabReportsTab = () => {
               ))}
             </datalist>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '16px 0' }}>
+            {/* Quick-Add Clinical Abbreviation Chips */}
+            <div style={{ margin: '12px 0 6px 0' }}>
+              <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
+                ⚡ Quick-Add Clinical Abbreviation:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {[
+                  { key: 'Hb', desc: 'Hemoglobin' },
+                  { key: 'MCV', desc: 'Mean Corpuscular Volume' },
+                  { key: 'TLC', desc: 'Total Leukocyte Count' },
+                  { key: 'Plt', desc: 'Platelets' },
+                  { key: 'TSH', desc: 'Thyroid Stimulating Hormone' },
+                  { key: 'Crt', desc: 'Creatinine' },
+                  { key: 'HbA1c', desc: 'HbA1c' },
+                  { key: 'TC', desc: 'Total Cholesterol' },
+                  { key: 'LDL', desc: 'LDL Cholesterol' },
+                  { key: 'HDL', desc: 'HDL Cholesterol' },
+                  { key: 'TAG', desc: 'Triglycerides' }
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleAddQuickTest(item.key)}
+                    style={{
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 4,
+                      padding: '3px 8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      cursor: 'pointer'
+                    }}
+                    title={item.desc}
+                  >
+                    + {item.key}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '14px 0' }}>
               {entries.map((entry, index) => (
                 <div key={index} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <input

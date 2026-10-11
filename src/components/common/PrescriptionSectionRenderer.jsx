@@ -9,6 +9,60 @@ import {
   translateInstructionText
 } from '../../services/prescriptionTranslation';
 
+export const LAB_ABBREVIATIONS = {
+  'hemoglobin': 'Hb',
+  'hb': 'Hb',
+  'mean corpuscular volume': 'MCV',
+  'mean corpsucle volume': 'MCV',
+  'mcv': 'MCV',
+  'total leucocyte count': 'TLC',
+  'total leukocyte count': 'TLC',
+  'total leukocytes count': 'TLC',
+  'total leucocyte count (tlc)': 'TLC',
+  'tlc': 'TLC',
+  'platelets': 'Plt',
+  'pleatlets': 'Plt',
+  'plt': 'Plt',
+  'thyroid stimulating hormone': 'TSH',
+  'tsh': 'TSH',
+  'creatinine': 'Crt',
+  'serum creatinine': 'Crt',
+  'crt': 'Crt',
+  'creat': 'Crt',
+  'hba1c': 'HbA1c',
+  'glycated hemoglobin': 'HbA1c',
+  'low density lipoprotein': 'LDL',
+  'low-density lipoprotein': 'LDL',
+  'ldl': 'LDL',
+  'total cholesterol': 'TC',
+  'tc total cholesterol': 'TC',
+  'tc': 'TC',
+  'high density lipoprotein': 'HDL',
+  'high-density lipoprotein': 'HDL',
+  'hdl': 'HDL',
+  'triglycerides': 'TAG',
+  'tag': 'TAG',
+  'tg': 'TAG',
+  'erythrocyte sedimentation rate': 'ESR',
+  'esr': 'ESR',
+  'fasting blood sugar': 'FBS',
+  'random blood sugar': 'RBS',
+  'blood urea': 'B. Urea',
+  'sgpt': 'ALT',
+  'alt': 'ALT'
+};
+
+export const formatLabKey = (key = '') => {
+  if (!key) return '';
+  const clean = key.trim().toLowerCase();
+  for (const [full, abbr] of Object.entries(LAB_ABBREVIATIONS)) {
+    if (clean === full || clean.startsWith(full) || clean.includes(full)) {
+      return abbr;
+    }
+  }
+  return key;
+};
+
 export const PrescriptionSectionRenderer = ({
   sections = [],
   headerSections = [],
@@ -256,58 +310,54 @@ export const PrescriptionSectionRenderer = ({
       case 'vitals_exam':
         if (!examsToPrint || examsToPrint.length === 0) return null;
         return (
-          <div style={{ marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
-            <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 3, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ marginBottom: isColumn ? 10 : 12, width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 2, marginBottom: 5, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span>🩺</span>
-              <span>Vital Signs &amp; Complaints</span>
-            </h4>
+              <span>Vital Signs</span>
+            </div>
             {examsToPrint.map((e, idx) => (
-              <div key={e.id || idx} style={{ fontSize: '0.825rem', wordBreak: 'break-word' }}>
-                {/* Vital Signs */}
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
-                    Vital Signs:
+              <div key={e.id || idx} style={{ fontSize: '0.775rem', wordBreak: 'break-word' }}>
+                {isColumn ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))', gap: '3px 6px', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 6px', borderRadius: 4, marginBottom: 4 }}>
+                    {e.vitals?.bpSystolic && <div><span style={{ color: '#64748b', fontSize: '0.675rem' }}>BP: </span><strong style={{ color: '#0f172a' }}>{e.vitals.bpSystolic}/{e.vitals.bpDiastolic || '80'}</strong></div>}
+                    {e.vitals?.bloodSugar && <div><span style={{ color: '#64748b', fontSize: '0.675rem' }}>BS: </span><strong style={{ color: '#0f172a' }}>{e.vitals.bloodSugar}</strong></div>}
+                    {e.vitals?.pulse && <div><span style={{ color: '#64748b', fontSize: '0.675rem' }}>Pulse: </span><strong style={{ color: '#0f172a' }}>{e.vitals.pulse}</strong></div>}
+                    {e.vitals?.weight && <div><span style={{ color: '#64748b', fontSize: '0.675rem' }}>Wt: </span><strong style={{ color: '#0f172a' }}>{e.vitals.weight}kg</strong></div>}
+                    {e.vitals?.temperature && <div><span style={{ color: '#64748b', fontSize: '0.675rem' }}>Temp: </span><strong style={{ color: '#0f172a' }}>{e.vitals.temperature}°F</strong></div>}
+                    {e.vitals?.spO2 && <div><span style={{ color: '#64748b', fontSize: '0.675rem' }}>SpO₂: </span><strong style={{ color: '#0f172a' }}>{e.vitals.spO2}%</strong></div>}
                   </div>
-                  <div style={{ display: 'flex', gap: '6px 8px', flexWrap: 'wrap', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: 4, fontSize: '0.8rem' }}>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px 12px', flexWrap: 'wrap', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: 4, marginBottom: 4, fontSize: '0.775rem' }}>
                     {e.vitals?.bpSystolic && <span><strong>BP:</strong> {e.vitals.bpSystolic}/{e.vitals.bpDiastolic || '80'} mmHg</span>}
                     {e.vitals?.pulse && <span><strong>Pulse:</strong> {e.vitals.pulse} /min</span>}
+                    {e.vitals?.bloodSugar && <span><strong>BS:</strong> {e.vitals.bloodSugar} mg/dL</span>}
+                    {e.vitals?.weight && <span><strong>Weight:</strong> {e.vitals.weight} kg</span>}
                     {e.vitals?.temperature && <span><strong>Temp:</strong> {e.vitals.temperature} °F</span>}
                     {e.vitals?.spO2 && <span><strong>SpO₂:</strong> {e.vitals.spO2}%</span>}
-                    {e.vitals?.weight && <span><strong>Weight:</strong> {e.vitals.weight} kg</span>}
-                    {e.vitals?.bloodSugar && <span><strong>BS:</strong> {e.vitals.bloodSugar} mg/dL</span>}
-                  </div>
-                </div>
-
-                {/* Complaints */}
-                {notesToPrint?.[0]?.chiefComplaints && (
-                  <div style={{ marginBottom: 6 }}>
-                    <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
-                      Complaints:
-                    </div>
-                    <div style={{ color: '#1e293b', fontSize: '0.8rem', lineHeight: 1.4, background: '#f8fafc', padding: '4px 8px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-                      {notesToPrint[0].chiefComplaints}
-                    </div>
                   </div>
                 )}
 
-                {/* Clinical Details */}
-                {e.findings && (
-                  <div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: 2 }}>
-                      Clinical Details:
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2 }}>
-                      {Object.entries(e.findings).map(([key, val]) => {
-                        if (!val || !val.trim()) return null;
-                        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                        return (
-                          <div key={key} style={{ fontSize: '0.775rem', color: '#334155' }}>
-                            <strong style={{ color: '#475569' }}>{label}: </strong>
-                            <span>{val}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                {/* Complaints if present */}
+                {notesToPrint?.[0]?.chiefComplaints && (
+                  <div style={{ marginTop: 3, marginBottom: 4, fontSize: '0.725rem', color: '#334155', lineHeight: 1.35 }}>
+                    <strong style={{ color: '#475569' }}>Complaints: </strong>
+                    <span>{notesToPrint[0].chiefComplaints}</span>
+                  </div>
+                )}
+
+                {/* Clinical Details if present */}
+                {e.findings && Object.values(e.findings).some(v => v && v.trim()) && (
+                  <div style={{ marginTop: 2, fontSize: '0.725rem', color: '#334155' }}>
+                    {Object.entries(e.findings).map(([key, val]) => {
+                      if (!val || !val.trim()) return null;
+                      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                      return (
+                        <div key={key} style={{ marginTop: 1 }}>
+                          <strong style={{ color: '#475569' }}>{label}: </strong>
+                          <span>{val}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -415,31 +465,62 @@ export const PrescriptionSectionRenderer = ({
 
       case 'lab_reports':
         if (!labsToPrint || labsToPrint.length === 0) return null;
+        const allLabEntries = labsToPrint.flatMap(l => (l.entries || []));
+        if (allLabEntries.length === 0) return null;
         return (
-          <div style={{ marginBottom: 14, width: '100%', boxSizing: 'border-box' }}>
-            <h4 style={{ fontSize: '0.825rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: 4, marginBottom: 8, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ marginBottom: isColumn ? 10 : 12, width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1.5px solid #0f172a', paddingBottom: 2, marginBottom: 5, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span>🧪</span>
-              <span>Laboratory Investigations Summary</span>
-            </h4>
-            {labsToPrint.map((l, idx) => (
-              <div key={l.id || idx} style={{ marginBottom: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0284c7', marginBottom: 3, wordBreak: 'break-word' }}>
-                  {l.title || 'Laboratory Report'} ({l.formattedDate || l.date})
-                </div>
-                {l.entries && l.entries.length > 0 && (
-                  <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: '0.775rem', boxSizing: 'border-box' }}>
-                    <tbody>
-                      {l.entries.map((ent, eIdx) => (
-                        <tr key={eIdx} style={{ borderBottom: '1px dotted #cbd5e1' }}>
-                          <td style={{ padding: '3px 4px', fontWeight: 600, width: '62%', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>{ent.key}</td>
-                          <td style={{ padding: '3px 4px', width: '38%', fontFamily: 'var(--font-mono)', textAlign: 'right', wordBreak: 'break-word', overflowWrap: 'break-word', boxSizing: 'border-box' }}>{ent.value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+              <span>Investigations</span>
+            </div>
+
+            {isColumn ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                {allLabEntries.map((ent, eIdx) => (
+                  <div
+                    key={eIdx}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      padding: '2px 0',
+                      borderBottom: eIdx < allLabEntries.length - 1 ? '1px dotted #cbd5e1' : 'none',
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                      {formatLabKey(ent.key)}
+                    </span>
+                    <span style={{ fontWeight: 700, color: '#0284c7', fontFamily: 'var(--font-mono)' }}>
+                      {ent.value}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '8px 14px',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  fontSize: '0.775rem'
+                }}
+              >
+                {allLabEntries.map((ent, eIdx) => (
+                  <span key={eIdx} style={{ color: '#334155' }}>
+                    <strong style={{ color: '#0f172a' }}>{formatLabKey(ent.key)}:</strong>{' '}
+                    <span style={{ color: '#0284c7', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                      {ent.value}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         );
 
@@ -586,76 +667,88 @@ export const PrescriptionSectionRenderer = ({
   };
 
   // Group sections into rows:
-  // If adjacent sections are horizontal (e.g. left column 40% and right column 60%),
-  // pair them side by side in a 2-column flex row!
+  // Contiguous sequences of horizontal sections (e.g. left Rx 74% and right Vitals+Labs 23%)
+  // are grouped into a 2-column flex row matching the doctor's notepad!
   const rows = [];
-  let pendingRow = [];
+  let currentGroup = null;
 
   enabledSections.forEach((section) => {
     if (section.layout === 'horizontal' && (section.align === 'left' || section.align === 'right')) {
-      if (pendingRow.length === 0) {
-        pendingRow.push(section);
-      } else if (pendingRow.length === 1 && pendingRow[0].layout === 'horizontal' && pendingRow[0].align !== section.align) {
-        pendingRow.push(section);
-        rows.push({ type: 'columns', items: pendingRow });
-        pendingRow = [];
+      if (!currentGroup) {
+        currentGroup = { type: 'columns', leftItems: [], rightItems: [] };
+      }
+      if (section.align === 'left') {
+        currentGroup.leftItems.push(section);
       } else {
-        rows.push({ type: 'single', items: pendingRow });
-        pendingRow = [section];
+        currentGroup.rightItems.push(section);
       }
     } else {
-      if (pendingRow.length > 0) {
-        rows.push({ type: 'single', items: pendingRow });
-        pendingRow = [];
+      if (currentGroup) {
+        if (currentGroup.leftItems.length > 0 && currentGroup.rightItems.length > 0) {
+          rows.push(currentGroup);
+        } else {
+          const allItems = [...currentGroup.leftItems, ...currentGroup.rightItems];
+          allItems.forEach(it => rows.push({ type: 'single', items: [it] }));
+        }
+        currentGroup = null;
       }
       rows.push({ type: 'single', items: [section] });
     }
   });
 
-  if (pendingRow.length > 0) {
-    rows.push({ type: 'single', items: pendingRow });
+  if (currentGroup) {
+    if (currentGroup.leftItems.length > 0 && currentGroup.rightItems.length > 0) {
+      rows.push(currentGroup);
+    } else {
+      const allItems = [...currentGroup.leftItems, ...currentGroup.rightItems];
+      allItems.forEach(it => rows.push({ type: 'single', items: [it] }));
+    }
   }
 
   return (
     <div style={{ width: '100%', boxSizing: 'border-box', fontSize: `${fontMultiplier * 100}%` }}>
       {rows.map((row, rIdx) => {
         if (row.type === 'columns') {
-          const leftItem = row.items.find(i => i.align === 'left') || row.items[0];
-          const rightItem = row.items.find(i => i.align === 'right') || row.items[1];
+          const leftItems = row.leftItems || [row.items?.find(i => i.align === 'left') || row.items?.[0]];
+          const rightItems = row.rightItems || [row.items?.find(i => i.align === 'right') || row.items?.[1]];
 
-          const leftIsRx = leftItem.id === 'rx_medications';
-          const rightIsRx = rightItem.id === 'rx_medications';
-          const isLeftMain = leftIsRx || (leftItem.id === 'demographics' && (rightItem.id === 'vitals_exam' || rightItem.id === 'lab_reports' || rightItem.id === 'clinical_notes'));
-          const isRightMain = rightIsRx || (rightItem.id === 'demographics' && (leftItem.id === 'vitals_exam' || leftItem.id === 'lab_reports' || leftItem.id === 'clinical_notes'));
+          const leftHasRx = leftItems.some(i => i && i.id === 'rx_medications');
+          const rightHasRx = rightItems.some(i => i && i.id === 'rx_medications');
 
           let leftWidth = '48.5%';
           let rightWidth = '48.5%';
 
-          if (leftItem.customWidth) {
-            leftWidth = leftItem.customWidth;
-            const numericLeft = parseFloat(leftItem.customWidth) || 50;
+          const customLeft = leftItems.find(i => i && i.customWidth)?.customWidth;
+          const customRight = rightItems.find(i => i && i.customWidth)?.customWidth;
+
+          if (customLeft) {
+            leftWidth = customLeft;
+            const numericLeft = parseFloat(customLeft) || 50;
             rightWidth = `${Math.max(100 - numericLeft - 3, 20)}%`;
-          } else if (rightItem.customWidth) {
-            rightWidth = rightItem.customWidth;
-            const numericRight = parseFloat(rightItem.customWidth) || 50;
+          } else if (customRight) {
+            rightWidth = customRight;
+            const numericRight = parseFloat(customRight) || 50;
             leftWidth = `${Math.max(100 - numericRight - 3, 20)}%`;
           } else if (columnSplit === 'balanced') {
             leftWidth = '48.5%';
             rightWidth = '48.5%';
           } else if (columnSplit === 'left-wide') {
-            leftWidth = '64%';
-            rightWidth = '33%';
+            leftWidth = '66%';
+            rightWidth = '31%';
           } else if (columnSplit === 'right-wide') {
-            leftWidth = '33%';
-            rightWidth = '64%';
+            leftWidth = '31%';
+            rightWidth = '66%';
           } else {
-            // 'rx-priority' default:
-            if (isLeftMain && !isRightMain) {
-              leftWidth = '58%';
-              rightWidth = '39%';
-            } else if (isRightMain && !isLeftMain) {
-              leftWidth = '39%';
-              rightWidth = '58%';
+            // 'rx-priority' default (Ikram Hospital Pad Photo Layout - Photo 2):
+            if (leftHasRx && !rightHasRx) {
+              leftWidth = '74%';
+              rightWidth = '23%';
+            } else if (rightHasRx && !leftHasRx) {
+              leftWidth = '23%';
+              rightWidth = '74%';
+            } else {
+              leftWidth = '70%';
+              rightWidth = '27%';
             }
           }
 
@@ -665,10 +758,10 @@ export const PrescriptionSectionRenderer = ({
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'flex-start',
+                alignItems: 'stretch',
                 width: '100%',
-                gap: 16,
-                marginBottom: Math.round(12 * spacingMultiplier),
+                gap: 14,
+                marginBottom: Math.round(10 * spacingMultiplier),
                 boxSizing: 'border-box'
               }}
             >
@@ -680,11 +773,15 @@ export const PrescriptionSectionRenderer = ({
                   minWidth: 0,
                   overflowX: 'hidden',
                   boxSizing: 'border-box',
-                  borderRight: '1px dashed #e2e8f0',
+                  borderRight: '1.5px solid #cbd5e1',
                   paddingRight: 12
                 }}
               >
-                {renderSectionBlock(leftItem, true)}
+                {leftItems.map((item, idx) => item && (
+                  <div key={item.id || idx}>
+                    {renderSectionBlock(item, true)}
+                  </div>
+                ))}
               </div>
               <div
                 style={{
@@ -696,13 +793,18 @@ export const PrescriptionSectionRenderer = ({
                   boxSizing: 'border-box'
                 }}
               >
-                {renderSectionBlock(rightItem, true)}
+                {rightItems.map((item, idx) => item && (
+                  <div key={item.id || idx}>
+                    {renderSectionBlock(item, true)}
+                  </div>
+                ))}
               </div>
             </div>
           );
         }
 
-        const singleItem = row.items[0];
+        const singleItem = row.items?.[0];
+        if (!singleItem) return null;
         return (
           <div key={`p-row-${rIdx}`} style={{ width: '100%', boxSizing: 'border-box', marginBottom: Math.round(10 * spacingMultiplier) }}>
             {renderSectionBlock(singleItem, false)}

@@ -96,6 +96,22 @@ export const DEFAULT_PRESCRIPTION_SECTIONS = [
 
 export const PRESCRIPTION_PRESETS = [
   {
+    id: 'ikram_cardio_pad',
+    label: '🏥 Ikram Hospital / Cardiology Pad',
+    description: 'Dr. Zain Safdar Notepad Layout: 74% Rx Prescriptions Left, 23% Vitals & Labs Right (Photo 2)',
+    columnSplit: 'rx-priority',
+    generate: () => [
+      { id: 'header', name: 'Clinical Letterhead Header', icon: '🏥', description: 'Doctor credentials & hospital branding', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'demographics', name: 'Patient Demographics Bar', icon: '👤', description: 'Patient Name, Age/Gender, MRN, Date', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'rx_medications', name: '℞ Prescriptions (Medications Table)', icon: '💊', description: 'Active medications, dosage, frequency & instructions (74% Left Column)', enabled: true, layout: 'horizontal', align: 'left' },
+      { id: 'vitals_exam', name: 'Recorded Vitals & Examination', icon: '🩺', description: 'BP, Pulse, BS, Weight (23% Right Column)', enabled: true, layout: 'horizontal', align: 'right' },
+      { id: 'lab_reports', name: 'Laboratory Investigations', icon: '🧪', description: 'Diagnostic lab tests (Hb, TLC, Plt, TSH, Crt, etc.) (23% Right Column)', enabled: true, layout: 'horizontal', align: 'right' },
+      { id: 'clinical_notes', name: 'Clinical Notes & Allergies', icon: '📝', description: 'Drug/Food Allergies & Notes', enabled: false, layout: 'vertical', align: 'full' },
+      { id: 'impression_advice', name: 'Clinical Impression & Advice', icon: '💡', description: 'Doctor diagnostic impression and follow-up guidance', enabled: true, layout: 'vertical', align: 'full' },
+      { id: 'footer_signature', name: 'Authorization & Signature Block', icon: '✍️', description: 'Emergency advice note, follow-up date and physician signature', enabled: true, layout: 'vertical', align: 'full' }
+    ]
+  },
+  {
     id: 'preset_1',
     label: '⭐ Preset 1',
     description: 'Demographics, Allergies & Diagnosis Left (45%), Vitals & Complaints Right (55%), Full-Width ℞, Safety Note Footer',
@@ -324,10 +340,10 @@ export const PrescriptionLayoutBuilder = ({
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {[
-              { id: 'rx-priority', label: '58% / 39%', title: 'Rx Priority (Recommended)' },
+              { id: 'rx-priority', label: '74% / 23%', title: 'Rx Priority (Ikram Hospital Pad - Photo 2)' },
+              { id: 'left-wide', label: '66% / 31%', title: 'Wide Left' },
               { id: 'balanced', label: '50% / 50%', title: 'Equal Balance' },
-              { id: 'left-wide', label: '65% / 32%', title: 'Wide Left' },
-              { id: 'right-wide', label: '35% / 62%', title: 'Wide Right' }
+              { id: 'right-wide', label: '31% / 66%', title: 'Wide Right' }
             ].map((s) => (
               <button
                 key={s.id}
